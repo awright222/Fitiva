@@ -32,13 +32,20 @@ A React Native + Expo + Supabase application designed to help seniors stay fit w
    - Navigate to the SQL Editor
    - Copy and paste the entire contents of `supabase-schema.sql` into the SQL Editor
    - Click "Run" to execute the migration (this creates all tables, policies, and triggers)
+   - Run `admin-seed.sql` to create the initial admin user
 
-3. **Environment is already configured:**
+3. **Configure authentication settings:**
+   - In Supabase dashboard, go to Authentication > Settings
+   - Enable email confirmations (optional for development)
+   - Configure email templates if needed
+   - For development, you can disable email confirmations to simplify testing
+
+4. **Environment is already configured:**
    - The `.env` file is already set up with your Supabase credentials
    - Project URL: https://kqnbottvwcnfwdjyyawr.supabase.co
    - The Supabase client is configured and ready to use
 
-4. **Start the development server:**
+5. **Start the development server:**
    ```bash
    npm start
    ```
@@ -104,9 +111,40 @@ The app uses Supabase Authentication with:
 
 ### Environment Variables
 
+For new developers, copy the environment template and add your own Supabase credentials:
+
+```bash
+cp .env.example .env
+```
+
+Then update `.env` with your Supabase project details:
 - `EXPO_PUBLIC_SUPABASE_URL`: Your Supabase project URL
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
 - `SUPABASE_SERVICE_ROLE_KEY`: Service role key for server operations (optional)
+
+**Note**: The current repository includes pre-configured credentials for development. For production, create your own Supabase project and update these values.
+
+### Initial Admin Setup
+
+After setting up the database, create a platform admin user:
+
+1. **Run the admin seed script:**
+   - Go to your Supabase SQL Editor
+   - Copy and paste the contents of `admin-seed.sql`
+   - Click "Run" to create the admin user
+
+2. **Default admin credentials:**
+   - Email: `admin@fitiva.com`
+   - Password: `FitivaAdmin2024!`
+   - **⚠️ Change this password immediately after first login**
+
+3. **Create additional admin users:**
+   ```sql
+   -- Run this in Supabase SQL Editor to create new admin users
+   -- Replace email and name as needed
+   INSERT INTO auth.users (email, encrypted_password, email_confirmed_at, raw_user_meta_data)
+   VALUES ('your-email@example.com', crypt('your-secure-password', gen_salt('bf')), NOW(), '{"name": "Your Name", "role": "admin"}');
+   ```
 
 ### App Configuration
 

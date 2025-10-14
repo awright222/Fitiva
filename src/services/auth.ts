@@ -134,7 +134,8 @@ export class AuthService {
    */
   static async updateUserProfile(updates: Partial<{
     name: string;
-    date_of_birth: Date;
+    role: UserRole;
+    date_of_birth: string;
     gender: string;
     height_cm: number;
     weight_kg: number;

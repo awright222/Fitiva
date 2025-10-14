@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import * as SecureStore from 'expo-secure-store';
 import { AuthService } from '../services/auth';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import { User } from '../types';
+import { User, SignUpData } from '../types';
 
 interface AuthContextType {
   user: SupabaseUser | null;
@@ -10,10 +11,17 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (data: any) => Promise<void>;
+  signUp: (data: SignUpData) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
 }
+
+// Secure storage keys
+const STORAGE_KEYS = {
+  SESSION: 'fitiva_session',
+  USER_PROFILE: 'fitiva_user_profile',
+} as const;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -27,22 +35,91 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Secure storage helpers
+  const storeSession = async (session: Session | null) => {
+    try {
+      if (session) {
+        await SecureStore.setItemAsync(STORAGE_KEYS.SESSION, JSON.stringify(session));
+      } else {
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.SESSION);
+      }
+    } catch (error) {
+      console.error('Error storing session:', error);
+    }
+  };
+
+  const storeUserProfile = async (profile: User | null) => {
+    try {
+      if (profile) {
+        await SecureStore.setItemAsync(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+      } else {
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_PROFILE);
+      }
+    } catch (error) {
+      console.error('Error storing user profile:', error);
+    }
+  };
+
+  const loadStoredSession = async (): Promise<Session | null> => {
+    try {
+      const storedSession = await SecureStore.getItemAsync(STORAGE_KEYS.SESSION);
+      return storedSession ? JSON.parse(storedSession) : null;
+    } catch (error) {
+      console.error('Error loading stored session:', error);
+      return null;
+    }
+  };
+
+  const loadStoredUserProfile = async (): Promise<User | null> => {
+    try {
+      const storedProfile = await SecureStore.getItemAsync(STORAGE_KEYS.USER_PROFILE);
+      return storedProfile ? JSON.parse(storedProfile) : null;
+    } catch (error) {
+      console.error('Error loading stored user profile:', error);
+      return null;
+    }
+  };
+
   const refreshProfile = async () => {
     if (user) {
       try {
         const profile = await AuthService.getUserProfile(user.id);
         setUserProfile(profile);
+        await storeUserProfile(profile);
       } catch (error) {
         console.error('Error refreshing profile:', error);
+        // Clear stored profile if fetch fails
+        setUserProfile(null);
+        await storeUserProfile(null);
       }
+    }
+  };
+
+  const updateProfile = async (updates: Partial<User>) => {
+    try {
+      const updatedProfile = await AuthService.updateUserProfile(updates);
+      setUserProfile(updatedProfile);
+      await storeUserProfile(updatedProfile);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      await AuthService.signIn({ email, password });
-      // The auth state change listener will handle setting the user
+      const { user: authUser, session: authSession } = await AuthService.signIn({ email, password });
+      
+      if (authSession) {
+        setSession(authSession);
+        setUser(authUser);
+        await storeSession(authSession);
+        
+        if (authUser) {
+          await refreshProfile();
+        }
+      }
     } catch (error) {
       console.error('Sign in error:', error);
       throw error;
@@ -51,11 +128,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signUp = async (data: any) => {
+  const signUp = async (data: SignUpData) => {
     try {
       setIsLoading(true);
-      await AuthService.signUp(data);
-      // The auth state change listener will handle setting the user
+      const { user: authUser, session: authSession } = await AuthService.signUp(data);
+      
+      if (authSession) {
+        setSession(authSession);
+        setUser(authUser);
+        await storeSession(authSession);
+        
+        if (authUser) {
+          await refreshProfile();
+        }
+      }
     } catch (error) {
       console.error('Sign up error:', error);
       throw error;
@@ -68,9 +154,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       await AuthService.signOut();
+      
+      // Clear state
       setUser(null);
       setUserProfile(null);
       setSession(null);
+      
+      // Clear secure storage
+      await storeSession(null);
+      await storeUserProfile(null);
     } catch (error) {
       console.error('Sign out error:', error);
       throw error;
@@ -80,43 +172,83 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
       try {
-        const session = await AuthService.getSession();
-        setSession(session);
-        if (session?.user) {
-          setUser(session.user);
+        // First, try to load from secure storage
+        const storedSession = await loadStoredSession();
+        const storedProfile = await loadStoredUserProfile();
+
+        if (storedSession && storedProfile) {
+          setSession(storedSession);
+          setUser(storedSession.user);
+          setUserProfile(storedProfile);
+        }
+
+        // Then check with Supabase for current session
+        const currentSession = await AuthService.getSession();
+        
+        if (currentSession?.user && mounted) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+          await storeSession(currentSession);
           await refreshProfile();
+        } else if (mounted) {
+          // Clear everything if no valid session
+          setUser(null);
+          setUserProfile(null);
+          setSession(null);
+          await storeSession(null);
+          await storeUserProfile(null);
         }
       } catch (error) {
-        console.error('Error getting initial session:', error);
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setUser(null);
+          setUserProfile(null);
+          setSession(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    getInitialSession();
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = AuthService.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth event:', event);
-        setSession(session);
+        if (!mounted) return;
         
-        if (session?.user) {
+        console.log('Auth event:', event);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          setSession(session);
           setUser(session.user);
+          await storeSession(session);
           await refreshProfile();
-        } else {
+        } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setUserProfile(null);
+          setSession(null);
+          await storeSession(null);
+          await storeUserProfile(null);
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          setSession(session);
+          await storeSession(session);
         }
         
         setIsLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const value: AuthContextType = {
@@ -124,11 +256,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     userProfile,
     session,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!session,
     signIn,
     signUp,
     signOut,
     refreshProfile,
+    updateProfile,
   };
 
   return (

@@ -1,30 +1,16 @@
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
 import { AuthProvider } from './src/context/AuthContext';
-
-function MainApp() {
-  return (
-    <View style={styles.container}>
-      <Text>Welcome to Fitiva!</Text>
-      <Text>Mobile-first fitness app for seniors</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+import { RootNavigator } from './src/navigation/RootNavigator';
 
 export default function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <NavigationContainer>
+        <RootNavigator />
+        <StatusBar style="auto" />
+      </NavigationContainer>
     </AuthProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
