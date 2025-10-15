@@ -1,8 +1,8 @@
--- Fix for authentication error: Missing INSERT policy for users table
+-- Safe fix for authentication error (no destructive operations)
 -- This allows the trigger to create user profiles during signup
 -- Run this in your Supabase SQL Editor
 
--- 1. Add missing INSERT policy for users table
+-- 1. Add missing INSERT policy for users table (safe operation)
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -17,7 +17,7 @@ BEGIN
   END IF;
 END $$;
 
--- 2. Ensure the trigger function has proper permissions
+-- 2. Update the trigger function with proper permissions (safe operation)
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS TRIGGER AS $$
 BEGIN
@@ -32,19 +32,28 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- 3. Re-create the trigger
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+-- 3. Create the trigger only if it doesn't exist (safe operation)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.triggers 
+    WHERE trigger_name = 'on_auth_user_created' 
+    AND event_object_schema = 'auth'
+    AND event_object_table = 'users'
+  ) THEN
+    CREATE TRIGGER on_auth_user_created
+      AFTER INSERT ON auth.users
+      FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+    RAISE NOTICE 'Trigger created successfully';
+  ELSE
+    RAISE NOTICE 'Trigger already exists';
+  END IF;
+END $$;
 
 -- 4. Test message
 DO $$
 BEGIN
-  RAISE NOTICE 'Auth fix applied successfully!';
+  RAISE NOTICE 'Safe auth fix applied successfully!';
   RAISE NOTICE 'You can now create new user accounts.';
+  RAISE NOTICE 'No destructive operations were performed.';
 END $$;
-GRANT EXECUTE ON FUNCTION create_user_profile TO anon;
-
--- 5. Enable email confirmations to be optional (for testing)
--- Note: This should be done in Supabase Auth settings, but we can test without confirmation

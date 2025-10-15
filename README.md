@@ -32,6 +32,7 @@ A React Native + Expo + Supabase application designed to help seniors stay fit w
    - Navigate to the SQL Editor
    - Copy and paste the entire contents of `supabase-schema.sql` into the SQL Editor
    - Click "Run" to execute the migration (this creates all tables, policies, and triggers)
+   - **IMPORTANT**: Run `auth-fix.sql` to fix the user signup trigger
    - Run `admin-seed.sql` to create the initial admin user
 
 3. **Configure authentication settings:**

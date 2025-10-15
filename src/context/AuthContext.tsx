@@ -35,13 +35,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Secure storage helpers
+  // Cross-platform storage helpers
   const storeSession = async (session: Session | null) => {
     try {
       if (session) {
-        await SecureStore.setItemAsync(STORAGE_KEYS.SESSION, JSON.stringify(session));
+        const sessionData = JSON.stringify(session);
+        if (SecureStore.isAvailableAsync && await SecureStore.isAvailableAsync()) {
+          await SecureStore.setItemAsync(STORAGE_KEYS.SESSION, sessionData);
+        } else {
+          // Fallback to localStorage for web
+          localStorage.setItem(STORAGE_KEYS.SESSION, sessionData);
+        }
       } else {
-        await SecureStore.deleteItemAsync(STORAGE_KEYS.SESSION);
+        if (SecureStore.isAvailableAsync && await SecureStore.isAvailableAsync()) {
+          await SecureStore.deleteItemAsync(STORAGE_KEYS.SESSION);
+        } else {
+          // Fallback to localStorage for web
+          localStorage.removeItem(STORAGE_KEYS.SESSION);
+        }
       }
     } catch (error) {
       console.error('Error storing session:', error);
@@ -51,9 +62,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const storeUserProfile = async (profile: User | null) => {
     try {
       if (profile) {
-        await SecureStore.setItemAsync(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+        const profileData = JSON.stringify(profile);
+        if (SecureStore.isAvailableAsync && await SecureStore.isAvailableAsync()) {
+          await SecureStore.setItemAsync(STORAGE_KEYS.USER_PROFILE, profileData);
+        } else {
+          // Fallback to localStorage for web
+          localStorage.setItem(STORAGE_KEYS.USER_PROFILE, profileData);
+        }
       } else {
-        await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_PROFILE);
+        if (SecureStore.isAvailableAsync && await SecureStore.isAvailableAsync()) {
+          await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_PROFILE);
+        } else {
+          // Fallback to localStorage for web
+          localStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
+        }
       }
     } catch (error) {
       console.error('Error storing user profile:', error);
@@ -62,7 +84,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loadStoredSession = async (): Promise<Session | null> => {
     try {
-      const storedSession = await SecureStore.getItemAsync(STORAGE_KEYS.SESSION);
+      let storedSession: string | null = null;
+      if (SecureStore.isAvailableAsync && await SecureStore.isAvailableAsync()) {
+        storedSession = await SecureStore.getItemAsync(STORAGE_KEYS.SESSION);
+      } else {
+        // Fallback to localStorage for web
+        storedSession = localStorage.getItem(STORAGE_KEYS.SESSION);
+      }
       return storedSession ? JSON.parse(storedSession) : null;
     } catch (error) {
       console.error('Error loading stored session:', error);
@@ -72,7 +100,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loadStoredUserProfile = async (): Promise<User | null> => {
     try {
-      const storedProfile = await SecureStore.getItemAsync(STORAGE_KEYS.USER_PROFILE);
+      let storedProfile: string | null = null;
+      if (SecureStore.isAvailableAsync && await SecureStore.isAvailableAsync()) {
+        storedProfile = await SecureStore.getItemAsync(STORAGE_KEYS.USER_PROFILE);
+      } else {
+        // Fallback to localStorage for web
+        storedProfile = localStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+      }
       return storedProfile ? JSON.parse(storedProfile) : null;
     } catch (error) {
       console.error('Error loading stored user profile:', error);
