@@ -13,7 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (data: SignUpData) => Promise<void>;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: (userId?: string) => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
@@ -114,18 +114,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const refreshProfile = async () => {
-    if (user) {
+  const refreshProfile = async (userId?: string) => {
+    const targetUserId = userId || user?.id;
+    if (targetUserId) {
       try {
-        const profile = await AuthService.getUserProfile(user.id);
+        console.log('RefreshProfile: Fetching profile for user:', targetUserId);
+        const profile = await AuthService.getUserProfile(targetUserId);
+        console.log('RefreshProfile: Profile fetched:', profile);
         setUserProfile(profile);
         await storeUserProfile(profile);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error refreshing profile:', error);
-        // Clear stored profile if fetch fails
-        setUserProfile(null);
+        // If user is authenticated but profile doesn't exist, sign them out
+        if (error?.message?.includes('0 rows') || error?.code === 'PGRST116') {
+          console.log('User authenticated but no profile found - signing out to allow fresh signup');
+          await signOut();
+          return;
+        } else {
+          // Clear stored profile if fetch fails for other reasons
+          setUserProfile(null);
+        }
         await storeUserProfile(null);
       }
+    } else {
+      console.log('RefreshProfile: No user ID provided and no user in state');
     }
   };
 
@@ -151,7 +163,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await storeSession(authSession);
         
         if (authUser) {
-          await refreshProfile();
+          await refreshProfile(authUser.id);
         }
       }
     } catch (error) {
@@ -173,7 +185,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await storeSession(authSession);
         
         if (authUser) {
-          await refreshProfile();
+          await refreshProfile(authUser.id);
         }
       }
     } catch (error) {
@@ -227,7 +239,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setSession(currentSession);
           setUser(currentSession.user);
           await storeSession(currentSession);
-          await refreshProfile();
+          await refreshProfile(currentSession.user.id);
         } else if (mounted) {
           // Clear everything if no valid session
           setUser(null);
@@ -263,7 +275,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setSession(session);
           setUser(session.user);
           await storeSession(session);
-          await refreshProfile();
+          await refreshProfile(session.user.id);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setUserProfile(null);

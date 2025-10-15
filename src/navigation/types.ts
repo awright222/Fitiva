@@ -43,6 +43,7 @@ export type AdminTabParamList = {
 
 export type RootStackParamList = {
   Auth: undefined;
+  ProfileLoading: undefined;
   ClientTabs: undefined;
   TrainerTabs: undefined;
   OrgTabs: undefined;

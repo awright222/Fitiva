@@ -15,6 +15,17 @@ export interface FeatureFlags {
   TRAINER_PAYOUTS: boolean;
   PROMOTION_CODES: boolean;
   
+  // Communication Features
+  MESSAGING_ENABLED: boolean;
+  VIDEO_CALLS_ENABLED: boolean;
+  NOTIFICATIONS_ENABLED: boolean;
+  
+    // Analytics Features
+  ANALYTICS_ENABLED: boolean;
+  ADVANCED_REPORTING: boolean;
+  ENGAGEMENT_TRACKING: boolean;
+  EXPORT_DATA: boolean;
+  
   // Organization & White Label Features
   WHITE_LABEL_ENABLED: boolean;
   ORGANIZATION_MANAGEMENT: boolean;
@@ -52,8 +63,6 @@ export interface FeatureFlags {
   HEALTH_KIT_INTEGRATION: boolean;
 }
 
-// Current feature flag configuration
-// Set to false for MVP, enable as features are developed
 export const FEATURES: FeatureFlags = {
   // Authentication & Core Features (MVP)
   EMAIL_VERIFICATION_REQUIRED: false, // Simplified for MVP
@@ -66,17 +75,22 @@ export const FEATURES: FeatureFlags = {
   TRAINER_PAYOUTS: false,
   PROMOTION_CODES: false,
   
+  // Communication Features (Phase 2)
+  MESSAGING_ENABLED: true, // Enable for dashboard display
+  VIDEO_CALLS_ENABLED: false,
+  NOTIFICATIONS_ENABLED: false,
+  
+  // Analytics Features (Future)
+  ANALYTICS_ENABLED: false,
+  ADVANCED_REPORTING: false,
+  ENGAGEMENT_TRACKING: false,
+  EXPORT_DATA: false,
+  
   // Organization & White Label Features (Post-MVP)
   WHITE_LABEL_ENABLED: false,
   ORGANIZATION_MANAGEMENT: false,
   MULTI_TENANT_SUPPORT: false,
   CUSTOM_BRANDING: false,
-  
-  // Analytics Features (Future)
-  ANALYTICS_ENABLED: false,
-  ENGAGEMENT_TRACKING: false,
-  ADVANCED_REPORTING: false,
-  EXPORT_DATA: false,
   
   // Content & Program Features (Phase 2)
   VIDEO_CONTENT: false,

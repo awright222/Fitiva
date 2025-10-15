@@ -31,6 +31,14 @@ export const RootNavigator: React.FC = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
         <Stack.Screen name="Auth" component={AuthNavigator} />
+      ) : !userProfile ? (
+        // If user is authenticated but has no profile, something is wrong
+        // For now show loading, but in production we might want to sign them out
+        <Stack.Screen 
+          name="ProfileLoading" 
+          component={LoadingScreen} 
+          options={{ headerShown: false }}
+        />
       ) : (
         <>
           {userRole === 'client' && (

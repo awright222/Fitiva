@@ -1,11 +1,33 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Button } from '../../components/ui/Button';
+import { View, ScrollView, StyleSheet, Text } from 'react-native';
+import { DashboardCard, SectionHeader, Button } from '../../components/ui';
+import { mockClientData } from '../../data/mockData';
+import { FEATURES } from '../../config/features';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS, SPACING, FONT_SIZES } from '../../constants';
 
 export const ClientHomeScreen: React.FC = () => {
   const { signOut, user } = useAuth();
+  const { welcomeMessage, trainerName, currentProgram, upcomingSessions, unreadMessages, recentProgress } = mockClientData;
+
+  const handleBookSession = () => {
+    // TODO: Navigate to booking screen when payments are enabled
+    console.log('Book session pressed');
+  };
+
+  const handleViewProgram = () => {
+    // TODO: Navigate to program details
+    console.log('View program pressed');
+  };
+
+  const handleViewMessages = () => {
+    // TODO: Navigate to messages
+    console.log('View messages pressed');
+  };
+
+  const handleTrackProgress = () => {
+    // TODO: Navigate to progress tracking
+    console.log('Track progress pressed');
+  };
 
   const handleSignOut = async () => {
     try {
@@ -16,27 +38,77 @@ export const ClientHomeScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Fitiva</Text>
-      <Text style={styles.subtitle}>Your fitness journey starts here</Text>
-      
-      <View style={styles.content}>
-        <Text style={styles.welcomeText}>
-          Hello, {user?.email}!
-        </Text>
-        <Text style={styles.roleText}>
-          Client Dashboard
-        </Text>
-        
-        <View style={styles.placeholderSection}>
-          <Text style={styles.sectionTitle}>Coming Soon:</Text>
-          <Text style={styles.featureText}>• Workout Programs</Text>
-          <Text style={styles.featureText}>• Progress Tracking</Text>
-          <Text style={styles.featureText}>• Trainer Communication</Text>
-          <Text style={styles.featureText}>• Health Metrics</Text>
-        </View>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* Welcome Section */}
+      <View style={styles.welcomeSection}>
+        <Text style={styles.welcomeText}>{welcomeMessage}</Text>
+        {trainerName && (
+          <Text style={styles.trainerText}>Your trainer: {trainerName}</Text>
+        )}
       </View>
 
+      {/* Current Program */}
+      <SectionHeader title="My Fitness Journey" />
+      <DashboardCard
+        title={currentProgram.name}
+        subtitle={`${currentProgram.progress}% complete • Week ${recentProgress.currentWeek} of ${recentProgress.totalWeeks}`}
+        icon="🎯"
+        onPress={handleViewProgram}
+      >
+        <View style={styles.progressContainer}>
+          <Text style={styles.progressText}>
+            Next session: {currentProgram.nextSession}
+          </Text>
+          <Text style={styles.workoutsText}>
+            {recentProgress.workoutsCompleted} workouts completed
+          </Text>
+        </View>
+      </DashboardCard>
+
+      {/* Quick Actions */}
+      <SectionHeader title="Quick Actions" />
+      
+      {/* Book Session */}
+      <DashboardCard
+        title="Book a Session"
+        subtitle={FEATURES.PAYMENTS_ENABLED ? "Schedule your next workout" : "Coming soon"}
+        icon="📅"
+        onPress={FEATURES.PAYMENTS_ENABLED ? handleBookSession : undefined}
+        disabled={!FEATURES.PAYMENTS_ENABLED}
+      />
+
+      {/* Messages */}
+      {FEATURES.MESSAGING_ENABLED && (
+        <DashboardCard
+          title="Messages"
+          subtitle={unreadMessages > 0 ? `${unreadMessages} unread messages` : "No new messages"}
+          icon="💬"
+          onPress={handleViewMessages}
+        />
+      )}
+
+      {/* Track Progress */}
+      <DashboardCard
+        title="Track Progress"
+        subtitle="View your fitness metrics and achievements"
+        icon="📊"
+        onPress={handleTrackProgress}
+      />
+
+      {/* Upcoming Sessions */}
+      <SectionHeader title="Upcoming Sessions" />
+      {upcomingSessions.map((session) => (
+        <DashboardCard
+          key={session.id}
+          title={session.title}
+          subtitle={`${session.date} at ${session.time}`}
+          icon="🏋️‍♀️"
+        >
+          <Text style={styles.sessionTrainer}>with {session.trainer}</Text>
+        </DashboardCard>
+      ))}
+
+      {/* Footer with Sign Out */}
       <View style={styles.footer}>
         <Button
           title="Sign Out"
@@ -44,67 +116,50 @@ export const ClientHomeScreen: React.FC = () => {
           variant="outline"
         />
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
+    backgroundColor: '#F9FAFB',
   },
-  title: {
-    fontSize: FONT_SIZES['4xl'],
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    textAlign: 'center',
-    marginBottom: SPACING.sm,
+  contentContainer: {
+    padding: 16,
   },
-  subtitle: {
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    marginBottom: SPACING.xl,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
+  welcomeSection: {
+    marginBottom: 8,
   },
   welcomeText: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    textAlign: 'center',
-    marginBottom: SPACING.md,
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
   },
-  roleText: {
-    fontSize: FONT_SIZES.md,
-    color: COLORS.primary,
-    textAlign: 'center',
-    marginBottom: SPACING.xl,
+  trainerText: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  progressContainer: {
+    gap: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#374151',
     fontWeight: '500',
   },
-  placeholderSection: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.lg,
-    borderRadius: 12,
-    marginTop: SPACING.lg,
+  workoutsText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
-  sectionTitle: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: SPACING.md,
-  },
-  featureText: {
-    fontSize: FONT_SIZES.md,
-    color: COLORS.text.secondary,
-    marginBottom: SPACING.sm,
-    paddingLeft: SPACING.md,
+  sessionTrainer: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontStyle: 'italic',
   },
   footer: {
-    paddingBottom: SPACING.xl,
+    marginTop: 32,
+    paddingBottom: 16,
   },
 });

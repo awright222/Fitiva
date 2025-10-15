@@ -107,21 +107,34 @@ export class AuthService {
    */
   static async getUserProfile(userId?: string) {
     try {
+      console.log('AuthService.getUserProfile: Called with userId:', userId);
       const currentUser = userId || (await this.getCurrentUser())?.id;
+      console.log('AuthService.getUserProfile: Using currentUser:', currentUser);
       if (!currentUser) {
         throw new Error('No authenticated user found');
       }
 
-      const { data, error } = await supabase
+      console.log('AuthService.getUserProfile: Querying users table...');
+      
+      // Add a timeout to prevent hanging
+      const queryPromise = supabase
         .from('users')
         .select('*')
         .eq('id', currentUser)
         .single();
+        
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
+      );
+      
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       if (error) {
+        console.error('AuthService.getUserProfile: Supabase error:', error);
         throw error;
       }
 
+      console.log('AuthService.getUserProfile: Profile data:', data);
       return data;
     } catch (error) {
       console.error('Get user profile error:', error);
