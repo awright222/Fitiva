@@ -20,6 +20,7 @@ export const ClientScheduleScreen: React.FC<ClientScheduleScreenProps> = ({ navi
 
   const handleSessionPress = (session: Session) => {
     // TODO: Navigate to session details screen
+    // TODO: When REALTIME_ENABLED, this could show live session updates
     console.log('Session pressed:', session);
   };
 
@@ -34,6 +35,8 @@ export const ClientScheduleScreen: React.FC<ClientScheduleScreenProps> = ({ navi
       
       const actionText = newStatus === 'canceled' ? 'canceled' : 'updated';
       Alert.alert('Success', `Session ${actionText} successfully`);
+      
+      // TODO: When REMINDERS_ENABLED, send push notification to trainer about cancellation
     }
   };
 

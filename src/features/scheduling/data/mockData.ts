@@ -1,5 +1,34 @@
 /**
  * Mock data for scheduling feature
+ * 
+ * TODO: SUPABASE INTEGRATION POINTS
+ * ================================
+ * 
+ * 1. Sessions Table (sessions):
+ *    - Replace mockSessions with: supabase.from('sessions').select('*')
+ *    - Add RLS policies for trainer/client access control
+ *    - Enable real-time subscriptions for live updates
+ * 
+ * 2. Trainers Table (trainers):
+ *    - Replace mockTrainers with: supabase.from('trainers').select('*')
+ *    - Join with user profiles for additional trainer info
+ * 
+ * 3. Trainer Availability (trainer_availability):
+ *    - Replace mockTrainerAvailability with database queries
+ *    - Implement recurring availability patterns
+ *    - Handle time zone conversions
+ * 
+ * 4. Real-time Features:
+ *    - Session status changes: supabase.channel('sessions').on('UPDATE')
+ *    - New bookings: supabase.channel('sessions').on('INSERT') 
+ *    - Availability updates: supabase.channel('trainer_availability').on('UPDATE')
+ * 
+ * 5. Functions to Replace:
+ *    - getSessionsByTrainer() -> supabase.from('sessions').select().eq('trainer_id', id)
+ *    - getSessionsByClient() -> supabase.from('sessions').select().eq('client_id', id)
+ *    - createSession() -> supabase.from('sessions').insert()
+ *    - updateSessionStatus() -> supabase.from('sessions').update().eq('id', id)
+ * 
  * This will be replaced with real Supabase queries later
  */
 
@@ -199,32 +228,42 @@ export const mockTrainerAvailability: TrainerAvailability[] = [
 ];
 
 // Helper functions for working with mock data
+// TODO: Replace all with Supabase queries
+
+// TODO: Replace with: supabase.from('sessions').select().eq('trainer_id', trainerId)
 export const getSessionsByTrainer = (trainerId: string): Session[] => {
   return mockSessions.filter(session => session.trainer_id === trainerId);
 };
 
+// TODO: Replace with: supabase.from('sessions').select().eq('client_id', clientId)  
 export const getSessionsByClient = (clientId: string): Session[] => {
   return mockSessions.filter(session => session.client_id === clientId);
 };
 
+// TODO: Replace with: supabase.from('sessions').select().eq('status', status)
 export const getSessionsByStatus = (status: string): Session[] => {
   return mockSessions.filter(session => session.status === status);
 };
 
+// TODO: Replace with: supabase.from('trainers').select('*')
 export const getTrainers = (): Trainer[] => {
   return mockTrainers;
 };
 
+// TODO: Replace with: supabase.from('trainer_availability').select().eq('trainer_id', trainerId)
 export const getTrainerAvailability = (trainerId: string): TimeSlot[] => {
   const trainer = mockTrainerAvailability.find(t => t.trainer_id === trainerId);
   return trainer ? trainer.available_slots : [];
 };
 
+// TODO: Replace with: supabase.from('trainers').select('*, trainer_availability(*)')
 export const getAllTrainers = (): TrainerAvailability[] => {
   return mockTrainerAvailability;
 };
 
 // Mock function to simulate session creation
+// TODO: Replace with Supabase insert
+// const { data, error } = await supabase.from('sessions').insert(sessionData)
 export const createSession = (sessionData: any): Session => {
   const newSession: Session = {
     id: `mock-${Date.now()}`,
@@ -241,17 +280,26 @@ export const createSession = (sessionData: any): Session => {
     session_type: sessionData.session_type || 'Personal Training',
   };
   
-  // In a real app, this would save to Supabase
+  // TODO: Replace with Supabase real-time
+  // When REALTIME_ENABLED: Broadcast session creation to trainer
+  // supabase.channel('sessions').send({ type: 'session_created', payload: newSession })
   mockSessions.push(newSession);
   return newSession;
 };
 
-// Mock function to update session status
+// Mock function to update session status  
+// TODO: Replace with Supabase update
+// const { data, error } = await supabase.from('sessions').update({ status }).eq('id', sessionId)
 export const updateSessionStatus = (sessionId: string, status: string): Session | null => {
   const sessionIndex = mockSessions.findIndex(session => session.id === sessionId);
   if (sessionIndex !== -1) {
     mockSessions[sessionIndex].status = status as any;
     mockSessions[sessionIndex].updated_at = new Date().toISOString();
+    
+    // TODO: Replace with Supabase real-time
+    // When REALTIME_ENABLED: Broadcast status change to client/trainer
+    // supabase.channel('sessions').send({ type: 'status_changed', payload: mockSessions[sessionIndex] })
+    
     return mockSessions[sessionIndex];
   }
   return null;

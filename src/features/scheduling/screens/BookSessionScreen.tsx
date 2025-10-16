@@ -80,6 +80,11 @@ export const BookSessionScreen: React.FC<BookSessionScreenProps> = ({ navigation
           },
         ]
       );
+      
+      // TODO: When REMINDERS_ENABLED, schedule push notification reminder
+      // TODO: When REALTIME_ENABLED, instantly notify trainer of new booking request
+      // TODO: When PAYMENTS_ENABLED, integrate Stripe payment flow here
+      
     } catch (error) {
       Alert.alert('Error', 'Failed to book session. Please try again.');
     } finally {
