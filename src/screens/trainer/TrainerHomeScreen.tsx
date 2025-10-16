@@ -1,11 +1,40 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Button } from '../../components/ui/Button';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { DashboardCard, SectionHeader, Button } from '../../components/ui';
+import { mockTrainerData } from '../../data/mockData';
+import { FEATURES } from '../../config/features';
+import { COLORS } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS, SPACING, FONT_SIZES } from '../../constants';
 
 export const TrainerHomeScreen: React.FC = () => {
-  const { signOut, user } = useAuth();
+  const { signOut } = useAuth();
+  const { profile, clients, todaySessions, recentMessages, earnings } = mockTrainerData;
+
+  const handleClientManagement = () => {
+    // TODO: Navigate to client management screen
+    console.log('Navigate to client management');
+  };
+
+  const handleScheduleManagement = () => {
+    // TODO: Navigate to schedule management
+    console.log('Navigate to schedule management');
+  };
+
+  const handleMessaging = () => {
+    // TODO: Navigate to messaging
+    console.log('Navigate to messaging');
+  };
+
+  const handleEarnings = () => {
+    // TODO: Navigate to earnings/analytics
+    console.log('Navigate to earnings');
+  };
+
+  const handleAddProgram = () => {
+    // TODO: Navigate to program creation
+    console.log('Navigate to program creation');
+  };
 
   const handleSignOut = async () => {
     try {
@@ -16,36 +45,123 @@ export const TrainerHomeScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Trainer Dashboard</Text>
-      <Text style={styles.subtitle}>Manage your clients and programs</Text>
-      
-      <View style={styles.content}>
-        <Text style={styles.welcomeText}>
-          Welcome, {user?.email}!
-        </Text>
-        <Text style={styles.roleText}>
-          Trainer Portal
-        </Text>
-        
-        <View style={styles.placeholderSection}>
-          <Text style={styles.sectionTitle}>Coming Soon:</Text>
-          <Text style={styles.featureText}>• Client Management</Text>
-          <Text style={styles.featureText}>• Program Creation</Text>
-          <Text style={styles.featureText}>• Progress Monitoring</Text>
-          <Text style={styles.featureText}>• Session Scheduling</Text>
-          <Text style={styles.featureText}>• Client Communication</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Welcome Header */}
+        <View style={styles.header}>
+          <Text style={styles.welcomeText}>Welcome back, {profile.name}!</Text>
+          <Text style={styles.subtitleText}>
+            {profile.specialties.join(' • ')} • {profile.totalClients} Active Clients
+          </Text>
         </View>
-      </View>
 
-      <View style={styles.footer}>
-        <Button
-          title="Sign Out"
-          onPress={handleSignOut}
-          variant="outline"
+        {/* My Clients Section */}
+        <SectionHeader 
+          title="My Clients" 
+          actionText="View All"
+          onActionPress={handleClientManagement}
         />
-      </View>
-    </View>
+        <View style={styles.cardsContainer}>
+          {clients.slice(0, 3).map((client) => (
+            <DashboardCard
+              key={client.id}
+              title={client.name}
+              subtitle={`Next: ${client.nextSession}`}
+              icon="👤"
+              onPress={handleClientManagement}
+            />
+          ))}
+        </View>
+
+        {/* Today's Sessions Section */}
+        <SectionHeader 
+          title="Today's Sessions" 
+          actionText="Manage Schedule"
+          onActionPress={handleScheduleManagement}
+        />
+        <View style={styles.cardsContainer}>
+          {todaySessions.map((session) => (
+            <DashboardCard
+              key={session.id}
+              title={`${session.time} - ${session.clientName}`}
+              subtitle={session.type}
+              icon={session.status === 'completed' ? '✅' : '📅'}
+              onPress={handleScheduleManagement}
+            />
+          ))}
+        </View>
+
+        {/* Messages Section */}
+        {FEATURES.MESSAGING_ENABLED && (
+          <>
+            <SectionHeader 
+              title="Recent Messages" 
+              actionText="View All"
+              onActionPress={handleMessaging}
+            />
+            <View style={styles.cardsContainer}>
+              {recentMessages.map((message) => (
+                <DashboardCard
+                  key={message.id}
+                  title={message.clientName}
+                  subtitle={message.message}
+                  icon="💬"
+                  onPress={handleMessaging}
+                />
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Earnings Overview Section */}
+        <SectionHeader 
+          title="Earnings Overview" 
+          actionText="View Details"
+          onActionPress={handleEarnings}
+        />
+        <View style={styles.cardsContainer}>
+          <DashboardCard
+            title="This Month"
+            subtitle={`$${earnings.thisMonth.toLocaleString()}`}
+            icon="💰"
+            onPress={handleEarnings}
+          />
+          <DashboardCard
+            title="This Week"
+            subtitle={`$${earnings.thisWeek.toLocaleString()}`}
+            icon="📊"
+            onPress={handleEarnings}
+          />
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <Button
+            title="Add New Program"
+            onPress={handleAddProgram}
+            style={styles.primaryButton}
+          />
+          <Button
+            title="Manage Schedule"
+            onPress={handleScheduleManagement}
+            variant="outline"
+            style={styles.secondaryButton}
+          />
+        </View>
+
+        {/* Sign Out */}
+        <View style={styles.signOutContainer}>
+          <Button
+            title="Sign Out"
+            onPress={handleSignOut}
+            variant="outline"
+          />
+        </View>
+
+        {/* Bottom spacing */}
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -53,59 +169,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
   },
-  title: {
-    fontSize: FONT_SIZES['4xl'],
-    fontWeight: 'bold',
-    color: COLORS.secondary,
-    textAlign: 'center',
-    marginBottom: SPACING.sm,
-  },
-  subtitle: {
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    marginBottom: SPACING.xl,
-  },
-  content: {
+  scrollView: {
     flex: 1,
-    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  header: {
+    paddingVertical: 20,
   },
   welcomeText: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: 'bold',
     color: COLORS.text.primary,
-    textAlign: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: 4,
   },
-  roleText: {
-    fontSize: FONT_SIZES.md,
-    color: COLORS.secondary,
-    textAlign: 'center',
-    marginBottom: SPACING.xl,
-    fontWeight: '500',
-  },
-  placeholderSection: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.lg,
-    borderRadius: 12,
-    marginTop: SPACING.lg,
-  },
-  sectionTitle: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: SPACING.md,
-  },
-  featureText: {
-    fontSize: FONT_SIZES.md,
+  subtitleText: {
+    fontSize: 16,
     color: COLORS.text.secondary,
-    marginBottom: SPACING.sm,
-    paddingLeft: SPACING.md,
   },
-  footer: {
-    paddingBottom: SPACING.xl,
+  cardsContainer: {
+    marginBottom: 24,
+  },
+  actionButtons: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  primaryButton: {
+    marginBottom: 12,
+  },
+  secondaryButton: {
+    marginBottom: 12,
+  },
+  signOutContainer: {
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  bottomSpacing: {
+    height: 20,
   },
 });

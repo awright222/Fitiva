@@ -30,7 +30,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
   
   const { signUp } = useAuth();
 
@@ -101,40 +100,15 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const signUpData = {
+    // Navigate to role selection with the form data
+    navigation.navigate('RoleSelection', {
+      signUpData: {
         email: formData.email.trim(),
         password: formData.password,
         name: formData.name.trim(),
-        role: 'client' as UserRole, // Default role, will be updated in role selection
         date_of_birth: formData.dateOfBirth || undefined,
-      };
-
-      await signUp(signUpData);
-      
-      // Navigate to role selection
-      navigation.navigate('RoleSelection');
-      
-    } catch (error: any) {
-      console.error('Sign up error:', error);
-      
-      let errorMessage = 'Sign up failed. Please try again.';
-      
-      if (error.message?.includes('User already registered')) {
-        errorMessage = 'An account with this email already exists. Please sign in instead.';
-      } else if (error.message?.includes('Password should be at least')) {
-        errorMessage = 'Password is too weak. Please choose a stronger password.';
-      } else if (error.message?.includes('Invalid email')) {
-        errorMessage = 'Please enter a valid email address.';
-      } else if (error.message?.includes('Network')) {
-        errorMessage = 'Network error. Please check your connection and try again.';
       }
-      
-      Alert.alert('Sign Up Error', errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   const navigateToLogin = () => {
@@ -151,7 +125,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
           <View style={styles.header}>
             <Text style={styles.title}>Join Fitiva</Text>
             <Text style={styles.subtitle}>
-              Create your account to start your fitness journey
+              Enter your details to get started
             </Text>
           </View>
 
@@ -211,10 +185,13 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
               helperText="Helps us personalize your fitness experience"
             />
 
+            <Text style={styles.stepText}>
+              Next: Choose your role
+            </Text>
+
             <Button
-              title="Create Account"
+              title="Continue to Role Selection"
               onPress={handleSignUp}
-              loading={isLoading}
               style={styles.signUpButton}
             />
           </View>
@@ -281,6 +258,14 @@ const styles = StyleSheet.create({
   
   signUpButton: {
     marginTop: SPACING.lg,
+  },
+  
+  stepText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    marginTop: SPACING.md,
+    fontStyle: 'italic',
   },
   
   footer: {

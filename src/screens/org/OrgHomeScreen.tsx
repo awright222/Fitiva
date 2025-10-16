@@ -1,11 +1,45 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Button } from '../../components/ui/Button';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { DashboardCard, SectionHeader, Button } from '../../components/ui';
+import { mockOrgData } from '../../data/mockData';
+import { FEATURES } from '../../config/features';
+import { COLORS } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS, SPACING, FONT_SIZES } from '../../constants';
 
 export const OrgHomeScreen: React.FC = () => {
-  const { signOut, user } = useAuth();
+  const { signOut } = useAuth();
+  const { organization, trainers, clients, sessions, revenue, topTrainers } = mockOrgData;
+
+  const handleTrainerManagement = () => {
+    // TODO: Navigate to trainer management screen
+    console.log('Navigate to trainer management');
+  };
+
+  const handleClientOverview = () => {
+    // TODO: Navigate to client overview
+    console.log('Navigate to client overview');
+  };
+
+  const handleAnalytics = () => {
+    // TODO: Navigate to analytics dashboard
+    console.log('Navigate to analytics');
+  };
+
+  const handleSettings = () => {
+    // TODO: Navigate to organization settings
+    console.log('Navigate to settings');
+  };
+
+  const handleInviteTrainer = () => {
+    // TODO: Navigate to invite trainer flow
+    console.log('Navigate to invite trainer');
+  };
+
+  const handleViewReports = () => {
+    // TODO: Navigate to detailed reports
+    console.log('Navigate to reports');
+  };
 
   const handleSignOut = async () => {
     try {
@@ -16,36 +50,149 @@ export const OrgHomeScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Organization Dashboard</Text>
-      <Text style={styles.subtitle}>Manage your fitness organization</Text>
-      
-      <View style={styles.content}>
-        <Text style={styles.welcomeText}>
-          Welcome, {user?.email}!
-        </Text>
-        <Text style={styles.roleText}>
-          Organization Manager
-        </Text>
-        
-        <View style={styles.placeholderSection}>
-          <Text style={styles.sectionTitle}>Coming Soon:</Text>
-          <Text style={styles.featureText}>• Trainer Management</Text>
-          <Text style={styles.featureText}>• Client Overview</Text>
-          <Text style={styles.featureText}>• Analytics & Reports</Text>
-          <Text style={styles.featureText}>• Billing Management</Text>
-          <Text style={styles.featureText}>• Organization Settings</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Organization Header */}
+        <View style={styles.header}>
+          <Text style={styles.orgIcon}>{organization.logo}</Text>
+          <Text style={styles.welcomeText}>{organization.name}</Text>
+          <Text style={styles.subtitleText}>{organization.location}</Text>
         </View>
-      </View>
 
-      <View style={styles.footer}>
-        <Button
-          title="Sign Out"
-          onPress={handleSignOut}
-          variant="outline"
+        {/* Trainer Overview Section */}
+        <SectionHeader 
+          title="Trainer Overview" 
+          actionText="Manage All"
+          onActionPress={handleTrainerManagement}
         />
-      </View>
-    </View>
+        <View style={styles.cardsContainer}>
+          <DashboardCard
+            title="Total Trainers"
+            subtitle={`${trainers.total} (${trainers.active} active)`}
+            icon="👨‍🏫"
+            onPress={handleTrainerManagement}
+          />
+          <DashboardCard
+            title="New This Month"
+            subtitle={`${trainers.newThisMonth} trainers joined`}
+            icon="✨"
+            onPress={handleTrainerManagement}
+          />
+        </View>
+
+        {/* Client Overview Section */}
+        <SectionHeader 
+          title="Client Overview" 
+          actionText="View Details"
+          onActionPress={handleClientOverview}
+        />
+        <View style={styles.cardsContainer}>
+          <DashboardCard
+            title="Active Clients"
+            subtitle={`${clients.active} of ${clients.total} total`}
+            icon="👥"
+            onPress={handleClientOverview}
+          />
+          <DashboardCard
+            title="Growth Rate"
+            subtitle={`${clients.newThisMonth} new this month`}
+            icon="📈"
+            onPress={handleClientOverview}
+          />
+          <DashboardCard
+            title="Retention"
+            subtitle={`${(100 - clients.churnRate).toFixed(1)}% retention rate`}
+            icon="🎯"
+            onPress={handleClientOverview}
+          />
+        </View>
+
+        {/* Analytics Snapshot Section */}
+        {FEATURES.ANALYTICS_ENABLED && (
+          <>
+            <SectionHeader 
+              title="Analytics Snapshot" 
+              actionText="View Reports"
+              onActionPress={handleAnalytics}
+            />
+            <View style={styles.cardsContainer}>
+              <DashboardCard
+                title="Today's Sessions"
+                subtitle={`${sessions.today} scheduled`}
+                icon="📅"
+                onPress={handleAnalytics}
+              />
+              <DashboardCard
+                title="Completion Rate"
+                subtitle={`${sessions.completionRate}% this week`}
+                icon="✅"
+                onPress={handleAnalytics}
+              />
+              <DashboardCard
+                title="Revenue"
+                subtitle={`$${revenue.thisMonth.toLocaleString()} (+${revenue.growth}%)`}
+                icon="💰"
+                onPress={handleAnalytics}
+              />
+            </View>
+          </>
+        )}
+
+        {/* Top Trainers Section */}
+        <SectionHeader 
+          title="Top Performers" 
+          actionText="View All"
+          onActionPress={handleTrainerManagement}
+        />
+        <View style={styles.cardsContainer}>
+          {topTrainers.map((trainer) => (
+            <DashboardCard
+              key={trainer.id}
+              title={trainer.name}
+              subtitle={`${trainer.clients} clients • $${trainer.revenue.toLocaleString()}`}
+              icon="⭐"
+              onPress={handleTrainerManagement}
+            />
+          ))}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <Button
+            title="Invite New Trainer"
+            onPress={handleInviteTrainer}
+            disabled={!FEATURES.WHITE_LABEL_ENABLED}
+            style={styles.primaryButton}
+          />
+          <Button
+            title="Organization Settings"
+            onPress={handleSettings}
+            variant="outline"
+            style={styles.secondaryButton}
+          />
+          {FEATURES.ANALYTICS_ENABLED && (
+            <Button
+              title="View Detailed Reports"
+              onPress={handleViewReports}
+              variant="outline"
+              style={styles.secondaryButton}
+            />
+          )}
+        </View>
+
+        {/* Sign Out */}
+        <View style={styles.signOutContainer}>
+          <Button
+            title="Sign Out"
+            onPress={handleSignOut}
+            variant="outline"
+          />
+        </View>
+
+        {/* Bottom spacing */}
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -53,59 +200,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
   },
-  title: {
-    fontSize: FONT_SIZES['4xl'],
-    fontWeight: 'bold',
-    color: COLORS.success,
-    textAlign: 'center',
-    marginBottom: SPACING.sm,
-  },
-  subtitle: {
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    marginBottom: SPACING.xl,
-  },
-  content: {
+  scrollView: {
     flex: 1,
-    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  header: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  orgIcon: {
+    fontSize: 48,
+    marginBottom: 8,
   },
   welcomeText: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: 'bold',
     color: COLORS.text.primary,
+    marginBottom: 4,
     textAlign: 'center',
-    marginBottom: SPACING.md,
   },
-  roleText: {
-    fontSize: FONT_SIZES.md,
-    color: COLORS.success,
-    textAlign: 'center',
-    marginBottom: SPACING.xl,
-    fontWeight: '500',
-  },
-  placeholderSection: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.lg,
-    borderRadius: 12,
-    marginTop: SPACING.lg,
-  },
-  sectionTitle: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: SPACING.md,
-  },
-  featureText: {
-    fontSize: FONT_SIZES.md,
+  subtitleText: {
+    fontSize: 16,
     color: COLORS.text.secondary,
-    marginBottom: SPACING.sm,
-    paddingLeft: SPACING.md,
+    textAlign: 'center',
   },
-  footer: {
-    paddingBottom: SPACING.xl,
+  cardsContainer: {
+    marginBottom: 24,
+  },
+  actionButtons: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  primaryButton: {
+    marginBottom: 12,
+  },
+  secondaryButton: {
+    marginBottom: 12,
+  },
+  signOutContainer: {
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  bottomSpacing: {
+    height: 20,
   },
 });

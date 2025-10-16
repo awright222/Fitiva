@@ -17,6 +17,16 @@ import { AuthService } from '../../services/auth';
 
 interface RoleSelectionScreenProps {
   navigation: any;
+  route: {
+    params?: {
+      signUpData?: {
+        email: string;
+        password: string;
+        name: string;
+        date_of_birth?: string;
+      };
+    };
+  };
 }
 
 interface RoleOption {
@@ -66,11 +76,12 @@ const roleOptions: RoleOption[] = [
   },
 ];
 
-export const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({ navigation }) => {
+export const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({ navigation, route }) => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, signUp } = useAuth();
+  const signUpData = route.params?.signUpData;
 
   const handleRoleSelection = async () => {
     if (!selectedRole) {
@@ -78,41 +89,72 @@ export const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({ naviga
       return;
     }
 
-    if (!user) {
-      Alert.alert('Error', 'No user session found. Please sign in again.');
-      navigation.navigate('Login');
-      return;
-    }
-
     setIsLoading(true);
     try {
-      // Update user profile with selected role
-      await updateProfile({ role: selectedRole });
-      
-      Alert.alert(
-        'Role Selected',
-        `Welcome to Fitiva as a ${USER_ROLES[selectedRole]}!`,
-        [
-          {
-            text: 'Continue',
-            onPress: () => {
-              // Navigation will be handled by AuthContext based on role
-              // The app will automatically navigate to the appropriate home screen
+      if (signUpData) {
+        // New user signup - create account with selected role
+        const completeSignUpData = {
+          ...signUpData,
+          role: selectedRole,
+        };
+
+        await signUp(completeSignUpData);
+        
+        Alert.alert(
+          'Account Created',
+          `Welcome to Fitiva as a ${USER_ROLES[selectedRole]}!`,
+          [
+            {
+              text: 'Continue',
+              onPress: () => {
+                // Navigation will be handled by AuthContext based on role
+                // The app will automatically navigate to the appropriate home screen
+              },
             },
-          },
-        ]
-      );
+          ]
+        );
+      } else {
+        // Existing user - update role
+        if (!user) {
+          Alert.alert('Error', 'No user session found. Please sign in again.');
+          navigation.navigate('Login');
+          return;
+        }
+
+        await updateProfile({ role: selectedRole });
+        
+        Alert.alert(
+          'Role Updated',
+          `Your role has been updated to ${USER_ROLES[selectedRole]}!`,
+          [
+            {
+              text: 'Continue',
+              onPress: () => {
+                // Navigation will be handled by AuthContext based on role
+              },
+            },
+          ]
+        );
+      }
       
     } catch (error: any) {
       console.error('Role selection error:', error);
       
-      let errorMessage = 'Failed to update your role. Please try again.';
+      let errorMessage = signUpData 
+        ? 'Failed to create your account. Please try again.'
+        : 'Failed to update your role. Please try again.';
       
-      if (error.message?.includes('Network')) {
+      if (error.message?.includes('User already registered')) {
+        errorMessage = 'An account with this email already exists. Please sign in instead.';
+      } else if (error.message?.includes('Password should be at least')) {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      } else if (error.message?.includes('Invalid email')) {
+        errorMessage = 'Please enter a valid email address.';
+      } else if (error.message?.includes('Network')) {
         errorMessage = 'Network error. Please check your connection and try again.';
       }
       
-      Alert.alert('Update Error', errorMessage);
+      Alert.alert(signUpData ? 'Sign Up Error' : 'Update Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +221,7 @@ export const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({ naviga
         </View>
 
         <Button
-          title="Continue"
+          title={signUpData ? "Create Account" : "Update Role"}
           onPress={handleRoleSelection}
           loading={isLoading}
           disabled={!selectedRole}
