@@ -5,13 +5,30 @@ import { mockClientData } from '../../data/mockData';
 import { FEATURES } from '../../config/features';
 import { useAuth } from '../../context/AuthContext';
 
-export const ClientHomeScreen: React.FC = () => {
+interface ClientHomeScreenProps {
+  navigation?: any;
+}
+
+export const ClientHomeScreen: React.FC<ClientHomeScreenProps> = ({ navigation }) => {
   const { signOut, user } = useAuth();
   const { welcomeMessage, trainerName, currentProgram, upcomingSessions, unreadMessages, recentProgress } = mockClientData;
 
   const handleBookSession = () => {
-    // TODO: Navigate to booking screen when payments are enabled
-    console.log('Book session pressed');
+    // Navigate to scheduling screen
+    if (navigation) {
+      navigation.navigate('BookSession');
+    } else {
+      console.log('Book session pressed');
+    }
+  };
+
+  const handleViewSchedule = () => {
+    // Navigate to client schedule screen
+    if (navigation) {
+      navigation.navigate('ClientSchedule');
+    } else {
+      console.log('View schedule pressed');
+    }
   };
 
   const handleViewProgram = () => {
@@ -71,10 +88,17 @@ export const ClientHomeScreen: React.FC = () => {
       {/* Book Session */}
       <DashboardCard
         title="Book a Session"
-        subtitle={FEATURES.PAYMENTS_ENABLED ? "Schedule your next workout" : "Coming soon"}
+        subtitle="Schedule your next workout with a trainer"
         icon="📅"
-        onPress={FEATURES.PAYMENTS_ENABLED ? handleBookSession : undefined}
-        disabled={!FEATURES.PAYMENTS_ENABLED}
+        onPress={handleBookSession}
+      />
+
+      {/* View Schedule */}
+      <DashboardCard
+        title="My Schedule"
+        subtitle="View and manage your upcoming sessions"
+        icon="🗓️"
+        onPress={handleViewSchedule}
       />
 
       {/* Messages */}

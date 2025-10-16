@@ -7,7 +7,11 @@ import { FEATURES } from '../../config/features';
 import { COLORS } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 
-export const TrainerHomeScreen: React.FC = () => {
+interface TrainerHomeScreenProps {
+  navigation?: any;
+}
+
+export const TrainerHomeScreen: React.FC<TrainerHomeScreenProps> = ({ navigation }) => {
   const { signOut } = useAuth();
   const { profile, clients, todaySessions, recentMessages, earnings } = mockTrainerData;
 
@@ -17,8 +21,12 @@ export const TrainerHomeScreen: React.FC = () => {
   };
 
   const handleScheduleManagement = () => {
-    // TODO: Navigate to schedule management
-    console.log('Navigate to schedule management');
+    // Navigate to trainer schedule screen
+    if (navigation) {
+      navigation.navigate('TrainerSchedule');
+    } else {
+      console.log('Navigate to schedule management');
+    }
   };
 
   const handleMessaging = () => {
