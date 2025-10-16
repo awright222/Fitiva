@@ -14,18 +14,22 @@ export const ClientHomeScreen: React.FC<ClientHomeScreenProps> = ({ navigation }
   const { welcomeMessage, trainerName, currentProgram, upcomingSessions, unreadMessages, recentProgress } = mockClientData;
 
   const handleBookSession = () => {
-    // Navigate to scheduling screen
+    // Navigate to Sessions tab, then to BookSession screen
     if (navigation) {
-      navigation.navigate('BookSession');
+      navigation.navigate('Sessions', {
+        screen: 'BookSession'
+      });
     } else {
       console.log('Book session pressed');
     }
   };
 
   const handleViewSchedule = () => {
-    // Navigate to client schedule screen
+    // Navigate to Sessions tab, then to ClientSchedule screen
     if (navigation) {
-      navigation.navigate('ClientSchedule');
+      navigation.navigate('Sessions', {
+        screen: 'ClientSchedule'
+      });
     } else {
       console.log('View schedule pressed');
     }

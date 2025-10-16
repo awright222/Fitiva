@@ -2,7 +2,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { TrainerHomeScreen } from '../screens/trainer/TrainerHomeScreen';
-import { ClientsScreen, ProgramsScreen, ScheduleScreen, ProfileScreen } from '../screens/trainer/TrainerTabScreens';
+import { ClientsScreen, ProgramsScreen, ProfileScreen } from '../screens/trainer/TrainerTabScreens';
+import { TrainerScheduleNavigator } from './TrainerScheduleNavigator';
 import { TrainerTabParamList } from './types';
 import { COLORS } from '../constants';
 
@@ -69,8 +70,8 @@ export const TrainerTabNavigator: React.FC = () => {
       />
       <Tab.Screen 
         name="Schedule" 
-        component={ScheduleScreen}
-        options={{ title: 'Schedule' }}
+        component={TrainerScheduleNavigator}
+        options={{ title: 'Schedule', headerShown: false }}
       />
       <Tab.Screen 
         name="Profile" 

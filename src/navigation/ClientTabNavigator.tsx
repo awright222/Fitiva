@@ -2,7 +2,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { ClientHomeScreen } from '../screens/client/ClientHomeScreen';
-import { ProgramsScreen, MessagesScreen, ScheduleScreen, ProfileScreen } from '../screens/client/ClientTabScreens';
+import { ProgramsScreen, MessagesScreen, ProfileScreen } from '../screens/client/ClientTabScreens';
+import { ClientScheduleNavigator } from './ClientScheduleNavigator';
 import { ClientTabParamList } from './types';
 import { COLORS } from '../constants';
 
@@ -64,8 +65,8 @@ export const ClientTabNavigator: React.FC = () => {
       />
       <Tab.Screen 
         name="Sessions" 
-        component={ScheduleScreen}
-        options={{ title: 'Sessions' }}
+        component={ClientScheduleNavigator}
+        options={{ title: 'Sessions', headerShown: false }}
       />
       <Tab.Screen 
         name="Messages" 

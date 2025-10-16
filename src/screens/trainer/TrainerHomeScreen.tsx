@@ -21,9 +21,11 @@ export const TrainerHomeScreen: React.FC<TrainerHomeScreenProps> = ({ navigation
   };
 
   const handleScheduleManagement = () => {
-    // Navigate to trainer schedule screen
+    // Navigate to Schedule tab, then to TrainerSchedule screen
     if (navigation) {
-      navigation.navigate('TrainerSchedule');
+      navigation.navigate('Schedule', {
+        screen: 'TrainerSchedule'
+      });
     } else {
       console.log('Navigate to schedule management');
     }
