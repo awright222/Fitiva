@@ -242,11 +242,7 @@ export async function createProgram(programData: CreateProgramData): Promise<Pro
     .insert({
       title: programData.title,
       description: programData.description,
-      created_by: user.id,
-      duration_weeks: programData.duration_weeks,
-      difficulty: programData.difficulty,
-      is_template: programData.is_template || false,
-      goals: programData.goals || ['general_fitness']
+      trainer_id: user.id
     })
     .select()
     .single();
