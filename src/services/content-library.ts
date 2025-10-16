@@ -710,39 +710,83 @@ export async function getExerciseLogs(filters: {
 // FILE UPLOAD HELPERS
 // =====================================================
 
-export async function uploadExerciseThumbnail(file: File): Promise<string> {
+/**
+ * Upload a thumbnail image for an exercise
+ * @param file - Image file to upload
+ * @param onProgress - Progress callback (0-100)
+ * @returns Promise<string> - File path in storage
+ */
+export async function uploadExerciseThumbnail(
+  file: File, 
+  onProgress?: (progress: number) => void
+): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
 
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+  // Generate unique file name
+  const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
 
+  // Upload to thumbnails bucket
   const { data, error } = await supabase.storage
     .from('exercise-thumbnails')
-    .upload(fileName, file);
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
 
   if (error) {
     console.error('Error uploading thumbnail:', error);
     throw error;
   }
 
+  // TODO: Add upload progress tracking when Supabase supports it
+  if (onProgress) {
+    onProgress(100);
+  }
+
   return data.path;
 }
 
-export async function uploadExerciseVideo(file: File): Promise<string> {
+/**
+ * Upload a video for an exercise (≤10 seconds recommended)
+ * @param file - Video file to upload
+ * @param onProgress - Progress callback (0-100)
+ * @returns Promise<string> - File path in storage
+ */
+export async function uploadExerciseVideo(
+  file: File, 
+  onProgress?: (progress: number) => void
+): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
 
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+  // Validate file size (50MB limit)
+  const maxSize = 50 * 1024 * 1024; // 50MB
+  if (file.size > maxSize) {
+    throw new Error('Video file too large. Maximum size is 50MB.');
+  }
 
+  // Generate unique file name
+  const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'mp4';
+  const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+
+  // Upload to videos bucket
   const { data, error } = await supabase.storage
     .from('exercise-videos')
-    .upload(fileName, file);
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
 
   if (error) {
     console.error('Error uploading video:', error);
     throw error;
+  }
+
+  // TODO: Add upload progress tracking when Supabase supports it
+  if (onProgress) {
+    onProgress(100);
   }
 
   return data.path;
@@ -754,4 +798,157 @@ export function getFilePublicUrl(bucket: string, path: string): string {
     .getPublicUrl(path);
 
   return data.publicUrl;
+}
+
+// =====================================================
+// FILE UPLOAD FUNCTIONS
+// =====================================================
+
+/**
+ * Delete a file from storage
+ * @param bucket - Storage bucket name
+ * @param path - File path in storage
+ */
+export async function deleteStorageFile(bucket: string, path: string): Promise<void> {
+  const { error } = await supabase.storage
+    .from(bucket)
+    .remove([path]);
+
+  if (error) {
+    console.error('Error deleting file:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get exercises with visibility rules for trainers
+ * @param scope - 'my' | 'org' | 'global'
+ * @param filters - Optional filters
+ */
+export async function getExercisesByScope(
+  scope: 'my' | 'org' | 'global',
+  filters?: any
+): Promise<{ exercises: Exercise[]; total: number }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { exercises: [], total: 0 };
+
+  let query = supabase
+    .from('content_library')
+    .select('*', { count: 'exact' });
+
+  // Apply scope filter
+  switch (scope) {
+    case 'my':
+      query = query.eq('created_by', user.id);
+      break;
+    case 'org':
+      // TODO: Implement org-level filtering when WHITE_LABEL_ENABLED
+      // For now, return empty for org scope
+      return { exercises: [], total: 0 };
+    case 'global':
+      query = query.eq('is_global', true);
+      break;
+  }
+
+  // Apply additional filters
+  if (filters) {
+    if (filters.category) {
+      query = query.eq('category', filters.category);
+    }
+    if (filters.muscle_groups) {
+      query = query.contains('muscle_groups', filters.muscle_groups);
+    }
+    if (filters.difficulty) {
+      query = query.eq('difficulty', filters.difficulty);
+    }
+    if (filters.search) {
+      query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+    }
+  }
+
+  const { data, error, count } = await query.order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching exercises by scope:', error);
+    throw error;
+  }
+
+  return {
+    exercises: data || [],
+    total: count || 0
+  };
+}
+
+/**
+ * Create exercise with media uploads
+ * @param exerciseData - Exercise data including title, description, etc.
+ * @param thumbnailFile - Optional thumbnail image file
+ * @param videoFile - Optional video file
+ * @param onProgress - Progress callback for uploads
+ */
+export async function createExerciseWithMedia(
+  exerciseData: CreateExerciseData,
+  thumbnailFile?: File,
+  videoFile?: File,
+  onProgress?: (progress: number) => void
+): Promise<Exercise> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  let thumbnailUrl: string | undefined;
+  let videoUrl: string | undefined;
+
+  try {
+    // Upload thumbnail if provided
+    if (thumbnailFile) {
+      onProgress?.(25);
+      thumbnailUrl = await uploadExerciseThumbnail(thumbnailFile);
+    }
+
+    // Upload video if provided
+    if (videoFile) {
+      onProgress?.(50);
+      videoUrl = await uploadExerciseVideo(videoFile);
+    }
+
+    onProgress?.(75);
+
+    // Create exercise record
+    const { data, error } = await supabase
+      .from('content_library')
+      .insert({
+        ...exerciseData,
+        created_by: user.id,
+        thumbnail_url: thumbnailUrl,
+        video_url: videoUrl,
+        is_global: false, // Trainer exercises are not global
+        org_id: null // DTC phase - no org assignment
+      })
+      .select()
+      .single();
+
+    if (error) {
+      // Clean up uploaded files if exercise creation fails
+      if (thumbnailUrl) {
+        await deleteStorageFile('exercise-thumbnails', thumbnailUrl);
+      }
+      if (videoUrl) {
+        await deleteStorageFile('exercise-videos', videoUrl);
+      }
+      throw error;
+    }
+
+    onProgress?.(100);
+    return data;
+
+  } catch (error) {
+    // Clean up any uploaded files on error
+    if (thumbnailUrl) {
+      await deleteStorageFile('exercise-thumbnails', thumbnailUrl);
+    }
+    if (videoUrl) {
+      await deleteStorageFile('exercise-videos', videoUrl);
+    }
+    throw error;
+  }
 }

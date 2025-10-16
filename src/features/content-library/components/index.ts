@@ -4,3 +4,4 @@
 
 export { ExerciseCard } from './ExerciseCard';
 export { ExerciseFilter } from './ExerciseFilter';
+export { ExerciseModal } from './ExerciseModal';
