@@ -326,6 +326,45 @@ export const mockClientPrograms: ClientProgram[] = [
     days_completed: 14,
     total_days: 18,
   },
+  {
+    id: 'cp_3',
+    client_id: 'client_3', // Mike Johnson  
+    program_id: 'prog_1',
+    assigned_by: 'trainer_1',
+    assigned_at: '2024-01-12T00:00:00Z',
+    start_date: '2024-01-12',
+    is_active: true,
+    completion_percentage: 62.1,
+    assigned_by_name: 'Sarah Wilson',
+    days_completed: 7,
+    total_days: 12,
+  },
+  {
+    id: 'cp_4',
+    client_id: 'client_4', // Sarah Wilson
+    program_id: 'prog_1',
+    assigned_by: 'trainer_1',
+    assigned_at: '2024-01-08T00:00:00Z',
+    start_date: '2024-01-08',
+    is_active: true,
+    completion_percentage: 89.3,
+    assigned_by_name: 'Sarah Wilson',
+    days_completed: 11,
+    total_days: 12,
+  },
+  {
+    id: 'cp_5',
+    client_id: 'client_5', // David Brown
+    program_id: 'prog_2',
+    assigned_by: 'trainer_1',
+    assigned_at: '2024-01-20T00:00:00Z',
+    start_date: '2024-01-20',
+    is_active: true,
+    completion_percentage: 12.8,
+    assigned_by_name: 'Sarah Wilson',
+    days_completed: 2,
+    total_days: 18,
+  },
 ];
 
 // ===================================
@@ -435,6 +474,11 @@ export const getExerciseById = async (id: string): Promise<Exercise | null> => {
 
 // TODO: Replace with: supabase.from('programs').select('*, days:program_days(*, exercises:program_exercises(*, exercise:content_library(*)))').match(filters)
 export const getPrograms = async (filters?: ProgramFilters): Promise<ProgramListResponse> => {
+  console.log('GET PROGRAMS CALLED');
+  console.log('Total programs in mockPrograms:', mockPrograms.length);
+  console.log('Available programs:', mockPrograms.map(p => ({ id: p.id, title: p.title })));
+  console.log('Filters applied:', filters);
+  
   let filteredPrograms = [...mockPrograms];
   
   if (filters) {
@@ -458,6 +502,12 @@ export const getPrograms = async (filters?: ProgramFilters): Promise<ProgramList
       );
     }
   }
+  
+  console.log('RETURNING FILTERED PROGRAMS:', filteredPrograms.length);
+  console.log('Filtered programs list:', filteredPrograms.map(p => ({ id: p.id, title: p.title })));
+  
+  console.log('RETURNING FILTERED PROGRAMS:', filteredPrograms.length);
+  console.log('Filtered programs list:', filteredPrograms.map(p => ({ id: p.id, title: p.title })));
   
   return {
     programs: filteredPrograms,
@@ -504,6 +554,80 @@ export const getClientPrograms = async (clientId: string): Promise<ClientProgram
   );
   
   return programsWithData.filter(cp => cp.program !== null) as ClientProgram[];
+};
+
+// Get all clients assigned to a specific program (for trainers)
+// TODO: Replace with: supabase.from('client_programs').select('*, client:users!inner(*)').eq('program_id', programId)
+export const getProgramAssignments = async (programId: string): Promise<(ClientProgram & { client_name?: string })[]> => {
+  await new Promise(resolve => setTimeout(resolve, 200)); // Simulate API delay
+  
+  const assignments = mockClientPrograms.filter(cp => cp.program_id === programId);
+  
+  // Mock client names (in real app, this would be joined from users table)
+  const clientNames: { [key: string]: string } = {
+    'client_1': 'John Doe',
+    'client_2': 'Emma Davis', 
+    'client_3': 'Mike Johnson',
+    'client_4': 'Sarah Wilson',
+    'client_5': 'David Brown',
+  };
+  
+  return assignments.map(assignment => ({
+    ...assignment,
+    client_name: clientNames[assignment.client_id] || 'Unknown Client',
+  }));
+};
+
+// Get clients for trainer
+export const getClients = async (): Promise<{ id: string; name: string; email?: string }[]> => {
+  await new Promise(resolve => setTimeout(resolve, 200)); // Simulate API delay
+  
+  // Mock client names (in real app, this would come from users table with trainer relationship)
+  return [
+    { id: 'client_1', name: 'John Doe', email: 'john.doe@email.com' },
+    { id: 'client_2', name: 'Emma Davis', email: 'emma.davis@email.com' },
+    { id: 'client_3', name: 'Mike Johnson', email: 'mike.johnson@email.com' },
+    { id: 'client_4', name: 'Sarah Wilson', email: 'sarah.wilson@email.com' },
+    { id: 'client_5', name: 'David Brown', email: 'david.brown@email.com' },
+  ];
+};
+
+// Save client assignments for a program
+export const saveClientAssignments = async (programId: string, clientIds: string[]): Promise<boolean> => {
+  await new Promise(resolve => setTimeout(resolve, 300)); // Simulate API delay
+  
+  try {
+    // Remove existing assignments for this program
+    const existingAssignments = mockClientPrograms.filter(cp => cp.program_id === programId);
+    existingAssignments.forEach(assignment => {
+      const index = mockClientPrograms.indexOf(assignment);
+      if (index > -1) {
+        mockClientPrograms.splice(index, 1);
+      }
+    });
+
+    // Add new assignments
+    clientIds.forEach(clientId => {
+      const newAssignment = {
+        id: `assignment_${programId}_${clientId}_${Date.now()}`,
+        client_id: clientId,
+        program_id: programId,
+        assigned_by: 'trainer_1', // Current trainer
+        assigned_at: new Date().toISOString(),
+        is_active: true,
+        start_date: new Date().toISOString(),
+        completion_percentage: 0,
+      };
+      
+      mockClientPrograms.push(newAssignment);
+    });
+
+    console.log(`Saved ${clientIds.length} client assignments for program ${programId}`);
+    return true;
+  } catch (error) {
+    console.error('Error saving client assignments:', error);
+    return false;
+  }
 };
 
 // TODO: Replace with: supabase.from('content_library').insert(exerciseData).select().single()
@@ -558,6 +682,74 @@ export const createProgram = async (program: Omit<Program, 'id' | 'created_at' |
   mockPrograms.unshift(newProgram);
   console.log('Created program:', newProgram);
   return newProgram;
+};
+
+// Update existing program
+// TODO: Replace with Supabase transaction (programs + program_days + program_exercises)
+export const updateProgram = async (id: string, updates: Partial<Omit<Program, 'id' | 'created_at'>>): Promise<Program> => {
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  const index = mockPrograms.findIndex(p => p.id === id);
+  if (index === -1) {
+    throw new Error('Program not found');
+  }
+
+  const updatedProgram: Program = {
+    ...mockPrograms[index],
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+
+  mockPrograms[index] = updatedProgram;
+  console.log('Updated program:', updatedProgram);
+  return updatedProgram;
+};
+
+// Delete program
+// TODO: Replace with Supabase cascade delete (programs + program_days + program_exercises)
+export const deleteProgram = async (id: string): Promise<boolean> => {
+  await new Promise(resolve => setTimeout(resolve, 400));
+
+  console.log('DELETE PROGRAM FUNCTION CALLED with ID:', id);
+  console.log('Current programs before delete:', mockPrograms.map(p => ({ id: p.id, title: p.title })));
+  
+  const index = mockPrograms.findIndex(p => p.id === id);
+  if (index === -1) {
+    console.log('PROGRAM NOT FOUND in mock data!');
+    return false;
+  }
+
+  const programToDelete = mockPrograms[index];
+  console.log('FOUND PROGRAM TO DELETE:', programToDelete.title);
+  
+  // Remove related program days and exercises
+  const programDaysToRemove = mockProgramDays.filter(day => day.program_id === id);
+  programDaysToRemove.forEach(day => {
+    const dayIndex = mockProgramDays.indexOf(day);
+    if (dayIndex > -1) {
+      mockProgramDays.splice(dayIndex, 1);
+    }
+    
+    // Remove program exercises for this day
+    const exercisesToRemove = mockProgramExercises.filter(ex => ex.program_day_id === day.id);
+    exercisesToRemove.forEach(exercise => {
+      const exerciseIndex = mockProgramExercises.indexOf(exercise);
+      if (exerciseIndex > -1) {
+        mockProgramExercises.splice(exerciseIndex, 1);
+      }
+    });
+  });
+
+  // Remove the program itself
+  mockPrograms.splice(index, 1);
+  console.log('PROGRAM DELETED FROM MOCK DATA. Programs remaining:', mockPrograms.length);
+  console.log('Remaining programs:', mockPrograms.map(p => ({ id: p.id, title: p.title })));
+  
+  // DEBUG: Show alert to confirm deletion happened
+  // Note: Import Alert from react-native if needed
+  console.log('DELETE SUCCESS - would show alert if Alert was imported');
+  
+  return true;
 };
 
 // TODO: Replace with: supabase.storage.from('exercise-thumbnails').upload()

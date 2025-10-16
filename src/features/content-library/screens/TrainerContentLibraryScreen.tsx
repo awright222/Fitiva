@@ -37,7 +37,7 @@
  *    - WHITE_LABEL_ENABLED: Allow org-level exercise sharing
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -53,7 +53,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 import { ExerciseCard, ExerciseFilter } from '../components';
@@ -61,7 +61,7 @@ import { SectionHeader, Button } from '../../../components/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { FEATURES } from '../../../config/features';
 import type { Exercise, ExerciseFilters, Program } from '../types';
-import { getExercises, deleteExercise, getPrograms } from '../data/mockData';
+import { getExercises, deleteExercise, getPrograms, updateProgram, deleteProgram, getProgramAssignments } from '../data/mockData';
 import { TrainerProgramsStackParamList } from '../../../navigation/types';
 
 // TODO: Import proper navigation types
@@ -100,6 +100,7 @@ export const TrainerContentLibraryScreen: React.FC = () => {
   const { user } = useAuth();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
+  const [programAssignments, setProgramAssignments] = useState<{ [programId: string]: any[] }>({});
   const [loading, setLoading] = useState(true);
   const [programsLoading, setProgramsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -127,6 +128,14 @@ export const TrainerContentLibraryScreen: React.FC = () => {
       setShowPrograms(true);
     }
   }, [programs.length]);
+
+  // Reload data when screen comes back into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('TrainerContentLibraryScreen focused - reloading programs');
+      loadPrograms();
+    }, [])
+  );
 
   // TODO: Replace with Supabase query
   const loadExercises = async () => {
@@ -162,10 +171,32 @@ export const TrainerContentLibraryScreen: React.FC = () => {
       //   .eq('trainer_id', user?.id)
       //   .order('created_at', { ascending: false });
       
-      const response = await getPrograms({ created_by: user?.id });
+      // For development: Load all programs first to see what we have
+      const allPrograms = await getPrograms({});
+      console.log('All programs available:', allPrograms.programs.map(p => ({ id: p.id, title: p.title, created_by: p.created_by })));
+      
+      // For development: show all programs regardless of creator to test functionality
+      const response = await getPrograms({});
+      // TODO: Change back to: const response = await getPrograms({ created_by: user?.id });
       console.log('Programs response:', response);
       setPrograms(response.programs);
       console.log('Set programs state:', response.programs.length, 'programs');
+      
+      // Load assignment data for these programs
+      if (response.programs.length > 0) {
+        const assignmentPromises = response.programs.map(async program => {
+          const assignments = await getProgramAssignments(program.id);
+          return { programId: program.id, assignments };
+        });
+        
+        const results = await Promise.all(assignmentPromises);
+        const assignmentsMap = results.reduce((acc, { programId, assignments }) => {
+          acc[programId] = assignments;
+          return acc;
+        }, {} as { [programId: string]: any[] });
+        
+        setProgramAssignments(assignmentsMap);
+      }
       
     } catch (error) {
       console.error('Error loading programs:', error);
@@ -176,6 +207,27 @@ export const TrainerContentLibraryScreen: React.FC = () => {
       );
     } finally {
       setProgramsLoading(false);
+    }
+  };
+
+  const loadProgramAssignments = async () => {
+    if (programs.length === 0) return;
+    
+    try {
+      const assignmentPromises = programs.map(async program => {
+        const assignments = await getProgramAssignments(program.id);
+        return { programId: program.id, assignments };
+      });
+      
+      const results = await Promise.all(assignmentPromises);
+      const assignmentsMap = results.reduce((acc, { programId, assignments }) => {
+        acc[programId] = assignments;
+        return acc;
+      }, {} as { [programId: string]: any[] });
+      
+      setProgramAssignments(assignmentsMap);
+    } catch (error) {
+      console.error('Error loading program assignments:', error);
     }
   };
 
@@ -303,21 +355,180 @@ export const TrainerContentLibraryScreen: React.FC = () => {
     );
   };
 
-  const renderProgram = ({ item }: { item: Program }) => (
-    <TouchableOpacity style={styles.programCard}>
-      <View style={styles.programHeader}>
-        <Text style={styles.programTitle} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.programDuration}>{item.duration_weeks}w</Text>
-      </View>
-      <Text style={styles.programDescription} numberOfLines={3}>
-        {item.description}
-      </Text>
-      <View style={styles.programMeta}>
-        <Text style={styles.programDifficulty}>{item.difficulty}</Text>
-        <Text style={styles.programDays}>{item.days?.length || 0} days</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const handleEditProgram = (program: Program) => {
+    if (program.created_by !== user?.id && program.created_by !== 'trainer_1') {
+      Alert.alert(
+        'Cannot Edit',
+        'You can only edit programs that you created.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    // Navigate to ProgramBuilder in edit mode
+    navigation.navigate('ProgramBuilder', { mode: 'edit', program: program });
+  };
+
+  const handleDeleteProgram = (program: Program) => {
+    console.log('Delete program called for:', program.title);
+    console.log('User ID:', user?.id);
+    console.log('Program created by:', program.created_by);
+    
+    // For development: Allow deletion of programs created by trainer_1 or current user
+    console.log('Checking authorization...');
+    console.log('program.created_by === user?.id:', program.created_by === user?.id);
+    console.log('program.created_by === trainer_1:', program.created_by === 'trainer_1');
+    const canDelete = program.created_by === user?.id || program.created_by === 'trainer_1';
+    console.log('Can delete program?', canDelete);
+    
+    if (!canDelete) {
+      console.log('Authorization failed - user cannot delete this program');
+      Alert.alert(
+        'Cannot Delete',
+        'You can only delete programs that you created.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    console.log('Authorization passed, showing delete confirmation...');
+
+    // Use browser confirm for web platform (Alert.alert doesn't work reliably on web)
+    console.log('About to show confirmation dialog...');
+    
+    const confirmed = confirm(`Are you sure you want to delete "${program.title}"? This action cannot be undone.`);
+    
+    if (confirmed) {
+      console.log('DELETE CONFIRMED - starting deletion process');
+      
+      (async () => {
+        console.log('Delete confirmation pressed for program ID:', program.id);
+        try {
+          console.log('Calling deleteProgram function...');
+          const success = await deleteProgram(program.id);
+          console.log('Delete result:', success);
+          if (success) {
+            console.log('Delete successful, reloading programs...');
+            // Reload programs to ensure consistency with backend
+            await loadPrograms();
+            alert(`Program "${program.title}" deleted successfully. Check the programs list!`);
+          } else {
+            throw new Error('Delete failed');
+          }
+        } catch (error) {
+          console.error('Error deleting program:', error);
+          alert('Unable to delete program. Please try again.');
+        }
+      })();
+    }
+  };
+
+  const handleProgramPress = (program: Program) => {
+    // TODO: Navigate to ProgramDetailScreen or assign to client
+    Alert.alert(
+      program.title,
+      `${program.description}\n\nDuration: ${program.duration_weeks} weeks\nDifficulty: ${program.difficulty}\nDays: ${program.days?.length || 0}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'View Details', onPress: () => console.log('View program details') },
+        { text: 'Assign to Client', onPress: () => console.log('Assign to client') }
+      ]
+    );
+  };
+
+  const handleViewAssignments = (program: Program, assignments: any[]) => {
+    const assignmentDetails = assignments
+      .map(a => `• ${a.client_name} (${Math.round(a.completion_percentage)}% complete)`)
+      .join('\n');
+    
+    Alert.alert(
+      `Assigned Clients - ${program.title}`,
+      `${assignments.length} client${assignments.length !== 1 ? 's' : ''} currently assigned:\n\n${assignmentDetails}`,
+      [
+        { text: 'OK' },
+        { text: 'Manage Assignments', onPress: () => console.log('Manage assignments') }
+      ]
+    );
+  };
+
+  const renderProgram = ({ item }: { item: Program }) => {
+    const assignments = programAssignments[item.id] || [];
+    const clientCount = assignments.length;
+    
+    return (
+      <TouchableOpacity 
+        style={styles.programCard}
+        onPress={() => handleProgramPress(item)}
+      >
+        <View style={styles.programHeader}>
+          <Text style={styles.programTitle} numberOfLines={2}>{item.title}</Text>
+          <Text style={styles.programDuration}>{item.duration_weeks}w</Text>
+        </View>
+        <Text style={styles.programDescription} numberOfLines={3}>
+          {item.description}
+        </Text>
+        <View style={styles.programMeta}>
+          <Text style={styles.programDifficulty}>{item.difficulty}</Text>
+          <Text style={styles.programDays}>{item.days?.length || 0} days</Text>
+        </View>
+        
+        {/* Client Assignment Info */}
+        {clientCount > 0 && (
+          <TouchableOpacity 
+            style={styles.clientAssignmentInfo}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleViewAssignments(item, assignments);
+            }}
+          >
+            <View style={styles.clientAssignmentRow}>
+              <Ionicons name="people" size={16} color={colors.primary} />
+              <Text style={styles.clientAssignmentText}>
+                {clientCount} client{clientCount !== 1 ? 's' : ''} assigned
+              </Text>
+            </View>
+            {clientCount <= 2 ? (
+              <Text style={styles.clientNames} numberOfLines={1}>
+                {assignments.map(a => a.client_name).join(', ')}
+              </Text>
+            ) : (
+              <Text style={styles.clientNames} numberOfLines={1}>
+                {assignments.slice(0, 2).map(a => a.client_name).join(', ')} +{clientCount - 2} more
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
+        
+        {/* Action buttons for programs created by this user */}
+        {(item.created_by === user?.id || item.created_by === 'trainer_1') && (
+          <View style={styles.programActions}>
+            <TouchableOpacity
+              style={styles.programActionButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleEditProgram(item);
+              }}
+            >
+              <Ionicons name="pencil" size={16} color={colors.primary} />
+              <Text style={styles.programActionText}>Edit</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.programActionButton, styles.programDeleteButton]}
+              onPress={(e) => {
+                e.stopPropagation();
+                console.log('DELETE BUTTON PRESSED for program:', item.title);
+                handleDeleteProgram(item);
+              }}
+            >
+              <Ionicons name="trash" size={16} color={colors.danger} />
+              <Text style={[styles.programActionText, styles.programDeleteText]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   const renderExercise = ({ item }: { item: Exercise }) => (
     <ExerciseCard
@@ -385,8 +596,6 @@ export const TrainerContentLibraryScreen: React.FC = () => {
       <SectionHeader
         title="Exercise Library"
         subtitle={`${exercises.length} exercise${exercises.length !== 1 ? 's' : ''} available`}
-        actionText="Add"
-        onActionPress={handleAddExercise}
       />
 
       {/* Quick Actions */}
@@ -412,24 +621,7 @@ export const TrainerContentLibraryScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Action Bar */}
-      <View style={styles.actionBar}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleCreateProgram}
-        >
-          <Ionicons name="add-circle" size={20} color={colors.primary} />
-          <Text style={styles.actionButtonText}>Create Program</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => Alert.alert('Programs', 'View existing programs feature coming soon!')}
-        >
-          <Ionicons name="list" size={20} color={colors.primary} />
-          <Text style={styles.actionButtonText}>View Programs</Text>
-        </TouchableOpacity>
-      </View>
+
 
       {/* Filter Bar */}
       <View style={styles.filterBar}>
@@ -462,8 +654,6 @@ export const TrainerContentLibraryScreen: React.FC = () => {
         <View style={styles.programsSection}>
           <SectionHeader
             title="My Programs"
-            actionText="Create New"
-            onActionPress={handleCreateProgram}
           />
           
           {programsLoading ? (
@@ -476,13 +666,8 @@ export const TrainerContentLibraryScreen: React.FC = () => {
               <Ionicons name="fitness-outline" size={48} color={colors.gray[400]} />
               <Text style={styles.emptyProgramsText}>No programs created yet</Text>
               <Text style={styles.emptyProgramsSubtext}>
-                Create your first program to get started
+                Use the "Build Program 💪" button above to create your first program
               </Text>
-              <Button
-                title="Create Program"
-                onPress={handleCreateProgram}
-                style={styles.emptyProgramsButton}
-              />
             </View>
           ) : (
             <FlatList
@@ -818,4 +1003,69 @@ const styles = StyleSheet.create({
   emptyProgramsButton: {
     marginTop: 8,
   } as ViewStyle,
+
+  programActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[200],
+  } as ViewStyle,
+
+  programActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: colors.gray[100],
+    borderWidth: 1,
+    borderColor: colors.primary,
+  } as ViewStyle,
+
+  programDeleteButton: {
+    borderColor: colors.danger,
+    backgroundColor: colors.gray[50],
+  } as ViewStyle,
+
+  programActionText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.primary,
+    marginLeft: 6,
+  } as TextStyle,
+
+  programDeleteText: {
+    color: colors.danger,
+  } as TextStyle,
+
+  clientAssignmentInfo: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[200],
+    backgroundColor: colors.gray[50],
+    borderRadius: 6,
+    padding: 8,
+  } as ViewStyle,
+
+  clientAssignmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  } as ViewStyle,
+
+  clientAssignmentText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.primary,
+    marginLeft: 6,
+  } as TextStyle,
+
+  clientNames: {
+    fontSize: 11,
+    color: colors.gray[600],
+    fontStyle: 'italic',
+  } as TextStyle,
 });

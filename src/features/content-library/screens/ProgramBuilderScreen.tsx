@@ -56,7 +56,7 @@ import { ExerciseCard, ExerciseFilter } from '../components';
 import { useAuth } from '../../../context/AuthContext';
 import { FEATURES } from '../../../config/features';
 import type { Exercise, Program, ProgramDay, ProgramExercise, ExerciseFilters } from '../types';
-import { getExercises, createProgram } from '../data/mockData';
+import { getExercises, createProgram, updateProgram, getProgramAssignments, getClients, saveClientAssignments } from '../data/mockData';
 import { TrainerProgramsStackParamList } from '../../../navigation/types';
 
 type ProgramBuilderScreenNavigationProp = StackNavigationProp<TrainerProgramsStackParamList, 'ProgramBuilder'>;
@@ -133,10 +133,23 @@ export const ProgramBuilderScreen: React.FC = () => {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [exerciseFilters, setExerciseFilters] = useState<ExerciseFilters>({});
 
+  // Client assignment state
+  const [assignedClients, setAssignedClients] = useState<string[]>([]);
+  const [availableClients, setAvailableClients] = useState<{ id: string; name: string; email?: string }[]>([]);
+  const [showClientSelector, setShowClientSelector] = useState(false);
+
   // Load exercises for selection
   useEffect(() => {
     loadExercises();
   }, [exerciseFilters]);
+
+  // Load client data for edit mode
+  useEffect(() => {
+    if (isEdit && existingProgram) {
+      loadProgramAssignments();
+    }
+    loadAvailableClients();
+  }, [isEdit, existingProgram]);
 
   const loadExercises = async () => {
     try {
@@ -145,6 +158,67 @@ export const ProgramBuilderScreen: React.FC = () => {
       setExercises(response.exercises);
     } catch (error) {
       console.error('Error loading exercises:', error);
+    }
+  };
+
+  const loadProgramAssignments = async () => {
+    if (!existingProgram?.id) return;
+    
+    try {
+      const assignments = await getProgramAssignments(existingProgram.id);
+      setAssignedClients(assignments.map(a => a.client_id));
+    } catch (error) {
+      console.error('Error loading program assignments:', error);
+    }
+  };
+
+  const loadAvailableClients = async () => {
+    try {
+      const clients = await getClients();
+      setAvailableClients(clients);
+    } catch (error) {
+      console.error('Error loading clients:', error);
+    }
+  };
+
+  const toggleClientAssignment = (clientId: string) => {
+    setAssignedClients(prev => 
+      prev.includes(clientId)
+        ? prev.filter(id => id !== clientId)
+        : [...prev, clientId]
+    );
+  };
+
+  const getAssignedClientNames = () => {
+    return assignedClients
+      .map(id => availableClients.find(client => client.id === id)?.name)
+      .filter(Boolean)
+      .join(', ');
+  };
+
+  const handleSaveClientAssignments = async () => {
+    if (!existingProgram?.id) {
+      Alert.alert('Error', 'Cannot save assignments - program not found');
+      return;
+    }
+
+    try {
+      console.log('Saving client assignments for program:', existingProgram.id);
+      console.log('Selected clients:', assignedClients);
+      
+      const success = await saveClientAssignments(existingProgram.id, assignedClients);
+      if (success) {
+        console.log('Client assignments saved successfully');
+        // Reload the program assignments to refresh the UI
+        await loadProgramAssignments();
+        setShowClientSelector(false);
+        Alert.alert('Success', `Updated client assignments for ${existingProgram.title}. Check the program screen!`);
+      } else {
+        Alert.alert('Error', 'Failed to save client assignments');
+      }
+    } catch (error) {
+      console.error('Error saving client assignments:', error);
+      Alert.alert('Error', 'Failed to save client assignments');
     }
   };
 
@@ -269,6 +343,16 @@ export const ProgramBuilderScreen: React.FC = () => {
     return null;
   };
 
+  const handleAssignClients = (program: any) => {
+    // TODO: Navigate to client assignment screen
+    // For now, just show an alert
+    Alert.alert(
+      'Client Assignment',
+      `Assigning clients to program: ${program.name}`,
+      [{ text: 'OK' }]
+    );
+  };
+
   const saveProgram = async () => {
     const validationError = validateForm();
     if (validationError) {
@@ -290,16 +374,27 @@ export const ProgramBuilderScreen: React.FC = () => {
         days: formData.days,
       };
 
-      // TODO: Replace with Supabase transaction
-      const savedProgram = await createProgram(programData);
+      let savedProgram: Program;
+      
+      if (isEdit && existingProgram) {
+        // Update existing program
+        savedProgram = await updateProgram(existingProgram.id, programData);
+      } else {
+        // Create new program
+        savedProgram = await createProgram(programData);
+      }
 
       Alert.alert(
         'Success',
         `Program "${formData.title}" has been ${isEdit ? 'updated' : 'created'} successfully!`,
         [
           {
-            text: 'OK',
+            text: 'Done',
             onPress: () => navigation.goBack(),
+          },
+          {
+            text: 'Assign to Clients',
+            onPress: () => handleAssignClients(savedProgram),
           },
         ]
       );
@@ -510,6 +605,39 @@ export const ProgramBuilderScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* Client Assignments (Edit Mode Only) */}
+        {isEdit && (
+          <View style={styles.clientAssignmentCard}>
+            <View style={styles.clientAssignmentHeader}>
+              <Text style={styles.cardTitle}>Client Assignments</Text>
+              <TouchableOpacity 
+                style={styles.manageClientsButton}
+                onPress={() => setShowClientSelector(true)}
+              >
+                <Ionicons name="people" size={16} color={colors.primary} />
+                <Text style={styles.manageClientsButtonText}>Manage</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {assignedClients.length > 0 ? (
+              <View style={styles.assignedClientsContainer}>
+                <Text style={styles.assignedClientsText}>
+                  Assigned to: {getAssignedClientNames()}
+                </Text>
+                <Text style={styles.assignedClientsCount}>
+                  {assignedClients.length} client{assignedClients.length !== 1 ? 's' : ''}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.noClientsAssigned}>
+                <Ionicons name="people-outline" size={24} color={colors.gray[600]} />
+                <Text style={styles.noClientsText}>No clients assigned</Text>
+                <Text style={styles.noClientsSubtext}>Tap "Manage" to assign clients to this program</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Days */}
         <View style={styles.daysSection}>
           <View style={styles.daysSectionHeader}>
@@ -579,6 +707,52 @@ export const ProgramBuilderScreen: React.FC = () => {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Client Selector Modal */}
+      <Modal
+        visible={showClientSelector}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowClientSelector(false)}>
+              <Ionicons name="close" size={24} color={colors.gray[900]} />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Assign Clients</Text>
+            <TouchableOpacity onPress={handleSaveClientAssignments}>
+              <Text style={styles.modalDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <Text style={styles.modalSubtitle}>
+              Select clients to assign this program to:
+            </Text>
+
+            {availableClients.map((client) => (
+              <TouchableOpacity
+                key={client.id}
+                style={[
+                  styles.clientItem,
+                  assignedClients.includes(client.id) && styles.clientItemSelected
+                ]}
+                onPress={() => toggleClientAssignment(client.id)}
+              >
+                <View style={styles.clientInfo}>
+                  <Text style={styles.clientName}>{client.name}</Text>
+                  {client.email && (
+                    <Text style={styles.clientEmail}>{client.email}</Text>
+                  )}
+                </View>
+                {assignedClients.includes(client.id) && (
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -610,6 +784,84 @@ const styles = StyleSheet.create({
         }
     ),
   } as ViewStyle,
+
+  clientAssignmentCard: {
+    backgroundColor: colors.white,
+    padding: 16,
+    margin: 16,
+    borderRadius: 12,
+    // Cross-platform shadow/box-shadow
+    ...(Platform.OS === 'web' 
+      ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
+      : {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 2,
+        }
+    ),
+  } as ViewStyle,
+
+  clientAssignmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  } as ViewStyle,
+
+  cardTitle: {
+    ...typography.h3,
+    color: colors.gray[900],
+  } as TextStyle,
+
+  manageClientsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: colors.gray[100],
+    borderRadius: 8,
+    gap: 4,
+  } as ViewStyle,
+
+  manageClientsButtonText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
+  } as TextStyle,
+
+  assignedClientsContainer: {
+    gap: 4,
+  } as ViewStyle,
+
+  assignedClientsText: {
+    ...typography.body,
+    color: colors.gray[900],
+  } as TextStyle,
+
+  assignedClientsCount: {
+    ...typography.caption,
+    color: colors.gray[600],
+  } as TextStyle,
+
+  noClientsAssigned: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  } as ViewStyle,
+
+  noClientsText: {
+    ...typography.body,
+    color: colors.gray[600],
+    fontWeight: '600',
+  } as TextStyle,
+
+  noClientsSubtext: {
+    ...typography.caption,
+    color: colors.gray[600],
+    textAlign: 'center',
+  } as TextStyle,
 
   inlineInputs: {
     flexDirection: 'row',
@@ -905,5 +1157,57 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.gray[600],
     textAlign: 'center',
+  } as TextStyle,
+
+  modalDoneText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+  } as TextStyle,
+
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  } as ViewStyle,
+
+  modalSubtitle: {
+    ...typography.body,
+    color: colors.gray[600],
+    marginBottom: 16,
+  } as TextStyle,
+
+  clientItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: colors.gray[50],
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+  } as ViewStyle,
+
+  clientItemSelected: {
+    backgroundColor: colors.primary + '10',
+    borderColor: colors.primary,
+  } as ViewStyle,
+
+  clientInfo: {
+    flex: 1,
+  } as ViewStyle,
+
+  clientName: {
+    ...typography.body,
+    color: colors.gray[900],
+    fontWeight: '600',
+  } as TextStyle,
+
+  clientEmail: {
+    ...typography.caption,
+    color: colors.gray[600],
+    marginTop: 2,
   } as TextStyle,
 });

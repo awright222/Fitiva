@@ -41,11 +41,6 @@ export const TrainerHomeScreen: React.FC<TrainerHomeScreenProps> = ({ navigation
     console.log('Navigate to earnings');
   };
 
-  const handleAddProgram = () => {
-    // TODO: Navigate to program creation
-    console.log('Navigate to program creation');
-  };
-
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -147,15 +142,9 @@ export const TrainerHomeScreen: React.FC<TrainerHomeScreenProps> = ({ navigation
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <Button
-            title="Add New Program"
-            onPress={handleAddProgram}
-            style={styles.primaryButton}
-          />
-          <Button
             title="Manage Schedule"
             onPress={handleScheduleManagement}
-            variant="outline"
-            style={styles.secondaryButton}
+            style={styles.primaryButton}
           />
         </View>
 
@@ -205,9 +194,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   primaryButton: {
-    marginBottom: 12,
-  },
-  secondaryButton: {
     marginBottom: 12,
   },
   signOutContainer: {
