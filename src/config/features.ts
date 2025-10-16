@@ -7,6 +7,10 @@ export const FEATURES = {
   CONTENT_LIBRARY_ENABLED: true, // Exercise library and program builder
   PROGRAM_BUILDER_ENABLED: true, // Trainer program creation
   EXERCISE_UPLOADS_ENABLED: true, // Image/video uploads for exercises
+  GLOBAL_EXERCISES_ENABLED: true, // View admin-created global exercises
+  EXERCISE_THUMBNAILS_ENABLED: true, // Upload and display exercise thumbnails
+  EXERCISE_VIDEOS_ENABLED: true, // Upload and display exercise demo videos
+  VIDEO_COMPRESSION_ENABLED: true, // Compress videos before upload (mobile optimization)
   AI_SUGGESTIONS_ENABLED: false, // Smart exercise suggestions (future)
   
   // Payment & subscription features (Post-MVP) 
@@ -29,7 +33,34 @@ export const FEATURES = {
   
   // Organization & white-label (Future)
   WHITE_LABEL_ENABLED: false, // Organization-level content sharing
+  ORG_CONTENT_LIBRARY: false, // Organization-level exercise library
   ORGANIZATION_MANAGEMENT: false,
+  
+  // Client Experience
+  CLIENT_PROGRAM_VIEW_ENABLED: true, // "My Program" screen for clients
+  EXERCISE_COMPLETION_TRACKING: true, // Track exercise/day completion
+  CLIENT_PROGRESS_ANALYTICS: false, // Advanced progress tracking (future)
 }; 
+
+// Utility functions for feature checking
+export const isFeatureEnabled = (feature: keyof typeof FEATURES): boolean => {
+  return FEATURES[feature];
+};
+
+export const canUploadContent = (): boolean => {
+  return FEATURES.CONTENT_LIBRARY_ENABLED && FEATURES.EXERCISE_UPLOADS_ENABLED;
+};
+
+export const canAccessGlobalExercises = (): boolean => {
+  return FEATURES.CONTENT_LIBRARY_ENABLED && FEATURES.GLOBAL_EXERCISES_ENABLED;
+};
+
+export const canAccessOrgContent = (): boolean => {
+  return FEATURES.WHITE_LABEL_ENABLED && FEATURES.ORG_CONTENT_LIBRARY;
+};
+
+export const supportsVideoFeatures = (): boolean => {
+  return FEATURES.EXERCISE_VIDEOS_ENABLED && FEATURES.VIDEO_COMPRESSION_ENABLED;
+};
 
 export default FEATURES;

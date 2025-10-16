@@ -49,7 +49,7 @@ import { SectionHeader, Button, DashboardCard } from '../../../components/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { FEATURES } from '../../../config/features';
 import type { ClientProgram, Program, ProgramDay } from '../types';
-import { getClientPrograms } from '../data/mockData';
+import { getClientPrograms } from '../../../services/content-library';
 
 type ClientProgramViewScreenProps = {
   navigation: StackNavigationProp<any>;
@@ -98,6 +98,372 @@ const typography = {
 } as const;
 
 export const ClientProgramViewScreen: React.FC<ClientProgramViewScreenProps> = ({ navigation, route }) => {
+  const { user } = useAuth();
+  const [programs, setPrograms] = useState<ClientProgram[]>([]);
+  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+  const [selectedDay, setSelectedDay] = useState<ProgramDay | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [completingExercise, setCompletingExercise] = useState<string | null>(null);
+  const [exerciseLogs, setExerciseLogs] = useState<{ [key: string]: any[] }>({});
+
+  useEffect(() => {
+    loadClientPrograms();
+  }, []);
+
+  useEffect(() => {
+    // If programId is provided in route params, select that program
+    if (route?.params?.programId && programs.length > 0) {
+      const program = programs.find(p => p.program?.id === route.params.programId)?.program;
+      if (program) {
+        setSelectedProgram(program);
+        if (program.days && program.days.length > 0) {
+          setSelectedDay(program.days[0]);
+        }
+      }
+    }
+  }, [route?.params?.programId, programs]);
+
+  const loadClientPrograms = async () => {
+    try {
+      setLoading(true);
+      
+      // Mock client programs with enhanced data
+      const mockPrograms: ClientProgram[] = [
+        {
+          id: '1',
+          client_id: user?.id || 'client_1',
+          program: {
+            id: 'program_1',
+            name: 'Beginner Strength Program',
+            description: 'A gentle introduction to strength training designed for seniors. Focus on building foundational strength and improving daily functional movements.',
+            trainer: {
+              id: 'trainer_1',
+              name: 'Sarah Johnson',
+              email: 'sarah@fitiva.com',
+            },
+            category: 'Strength Training',
+            difficulty_level: 'Beginner',
+            duration_weeks: 4,
+            is_active: true,
+            created_at: '2024-01-15T10:00:00Z',
+            days: [
+              {
+                id: 'day_1',
+                program_id: 'program_1',
+                name: 'Upper Body Focus',
+                description: 'Gentle exercises for arms, shoulders, and back. Perfect for building upper body strength.',
+                day_number: 1,
+                exercises: [
+                  {
+                    id: 'exercise_1',
+                    name: 'Seated Row',
+                    description: 'Strengthens back and arm muscles while seated comfortably',
+                    category: 'Strength',
+                    muscle_groups: ['Back', 'Arms'],
+                    difficulty_level: 'Beginner',
+                    equipment_needed: ['Resistance Band'],
+                    duration_minutes: 5,
+                    thumbnail_url: 'https://example.com/thumbnails/seated-row.jpg',
+                    instructions: 'Sit tall, pull band towards your chest, squeeze shoulder blades together',
+                    sets: 2,
+                    reps: 10,
+                    rest_seconds: 60,
+                    notes: 'Start with light resistance. Focus on proper form.',
+                  },
+                  {
+                    id: 'exercise_2',
+                    name: 'Wall Push-ups',
+                    description: 'Modified push-ups using a wall for support',
+                    category: 'Strength',
+                    muscle_groups: ['Chest', 'Arms'],
+                    difficulty_level: 'Beginner',
+                    equipment_needed: [],
+                    duration_minutes: 3,
+                    thumbnail_url: 'https://example.com/thumbnails/wall-pushups.jpg',
+                    instructions: 'Stand arm\'s length from wall, place palms flat, push away from wall',
+                    sets: 2,
+                    reps: 8,
+                    rest_seconds: 60,
+                    notes: 'Keep body straight. If too easy, step further from wall.',
+                  },
+                ],
+              },
+              {
+                id: 'day_2',
+                program_id: 'program_1',
+                name: 'Lower Body & Balance',
+                description: 'Leg strength and balance exercises to improve stability and mobility.',
+                day_number: 2,
+                exercises: [
+                  {
+                    id: 'exercise_3',
+                    name: 'Chair Squats',
+                    description: 'Sit-to-stand exercises using a chair for support',
+                    category: 'Strength',
+                    muscle_groups: ['Legs', 'Glutes'],
+                    difficulty_level: 'Beginner',
+                    equipment_needed: ['Chair'],
+                    duration_minutes: 4,
+                    thumbnail_url: 'https://example.com/thumbnails/chair-squats.jpg',
+                    instructions: 'Sit on edge of chair, stand up without using hands, sit back down slowly',
+                    sets: 2,
+                    reps: 12,
+                    rest_seconds: 60,
+                    notes: 'Use chair arms for balance if needed. Focus on controlled movement.',
+                  },
+                  {
+                    id: 'exercise_4',
+                    name: 'Calf Raises',
+                    description: 'Strengthen calf muscles and improve balance',
+                    category: 'Strength',
+                    muscle_groups: ['Calves'],
+                    difficulty_level: 'Beginner',
+                    equipment_needed: ['Chair'],
+                    duration_minutes: 3,
+                    thumbnail_url: 'https://example.com/thumbnails/calf-raises.jpg',
+                    instructions: 'Hold chair for balance, rise up on toes, lower slowly',
+                    sets: 2,
+                    reps: 15,
+                    rest_seconds: 45,
+                    notes: 'Hold the top position for 2 seconds for extra challenge.',
+                  },
+                ],
+              },
+              {
+                id: 'day_3',
+                program_id: 'program_1',
+                name: 'Flexibility & Mobility',
+                description: 'Gentle stretching and mobility exercises to improve range of motion.',
+                day_number: 3,
+                exercises: [
+                  {
+                    id: 'exercise_5',
+                    name: 'Shoulder Rolls',
+                    description: 'Gentle shoulder mobility exercise',
+                    category: 'Flexibility',
+                    muscle_groups: ['Shoulders'],
+                    difficulty_level: 'Beginner',
+                    equipment_needed: [],
+                    duration_minutes: 2,
+                    thumbnail_url: 'https://example.com/thumbnails/shoulder-rolls.jpg',
+                    instructions: 'Roll shoulders forward, up, back, and down in smooth circles',
+                    sets: 1,
+                    reps: 10,
+                    rest_seconds: 0,
+                    notes: 'Breathe deeply throughout the movement.',
+                  },
+                ],
+              },
+            ],
+          },
+          assigned_date: '2024-01-15T10:00:00Z',
+          status: 'active',
+        },
+        {
+          id: '2',
+          client_id: user?.id || 'client_1',
+          program: {
+            id: 'program_2',
+            name: 'Balance & Coordination',
+            description: 'Improve balance, coordination, and prevent falls with these targeted exercises.',
+            trainer: {
+              id: 'trainer_1',
+              name: 'Sarah Johnson',
+              email: 'sarah@fitiva.com',
+            },
+            category: 'Balance',
+            difficulty_level: 'Beginner',
+            duration_weeks: 3,
+            is_active: true,
+            created_at: '2024-01-20T10:00:00Z',
+            days: [
+              {
+                id: 'day_4',
+                program_id: 'program_2',
+                name: 'Standing Balance',
+                description: 'Improve standing balance and stability.',
+                day_number: 1,
+                exercises: [
+                  {
+                    id: 'exercise_6',
+                    name: 'Single Leg Stand',
+                    description: 'Hold balance on one foot to improve stability',
+                    category: 'Balance',
+                    muscle_groups: ['Legs', 'Core'],
+                    difficulty_level: 'Beginner',
+                    equipment_needed: ['Chair'],
+                    duration_minutes: 2,
+                    thumbnail_url: 'https://example.com/thumbnails/single-leg-stand.jpg',
+                    instructions: 'Hold chair with one hand, lift one foot slightly off ground, hold for 10 seconds',
+                    sets: 2,
+                    reps: 5,
+                    rest_seconds: 30,
+                    notes: 'Start with both hands on chair, progress to one hand, then no hands.',
+                  },
+                ],
+              },
+            ],
+          },
+          assigned_date: '2024-01-20T10:00:00Z',
+          status: 'active',
+        },
+      ];
+
+      setPrograms(mockPrograms);
+
+      // Mock exercise logs
+      setExerciseLogs({
+        'exercise_1': [
+          {
+            id: 'log_1',
+            exercise_id: 'exercise_1',
+            completed_at: '2024-01-16T09:00:00Z',
+            completed_sets: 2,
+            completed_reps: 10,
+            notes: 'Felt good, slight fatigue in arms',
+          },
+          {
+            id: 'log_2',
+            exercise_id: 'exercise_1',
+            completed_at: '2024-01-18T10:30:00Z',
+            completed_sets: 2,
+            completed_reps: 12,
+            notes: 'Increased reps, feeling stronger',
+          },
+        ],
+        'exercise_3': [
+          {
+            id: 'log_3',
+            exercise_id: 'exercise_3',
+            completed_at: '2024-01-17T08:00:00Z',
+            completed_sets: 2,
+            completed_reps: 12,
+            notes: 'Good form, no knee pain',
+          },
+        ],
+      });
+
+    } catch (error) {
+      console.error('Error loading client programs:', error);
+      Alert.alert('Error', 'Could not load your programs. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteExercise = async (exercise: any) => {
+    Alert.alert(
+      'Complete Exercise',
+      `Mark "${exercise.name}" as completed?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Complete',
+          onPress: () => logExercise(exercise),
+        },
+      ],
+    );
+  };
+
+  const logExercise = async (exercise: any) => {
+    try {
+      setCompletingExercise(exercise.id);
+
+      // Simulate logging delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Add to local logs
+      const newLog = {
+        id: `log_${Date.now()}`,
+        exercise_id: exercise.id,
+        completed_at: new Date().toISOString(),
+        completed_sets: exercise.sets,
+        completed_reps: exercise.reps,
+        notes: 'Completed via mobile app',
+      };
+
+      setExerciseLogs(prev => ({
+        ...prev,
+        [exercise.id]: [...(prev[exercise.id] || []), newLog],
+      }));
+
+      Alert.alert('Success', 'Exercise completed! Great work! 🎉');
+    } catch (error) {
+      console.error('Error logging exercise:', error);
+      Alert.alert('Error', 'Could not log exercise completion. Please try again.');
+    } finally {
+      setCompletingExercise(null);
+    }
+  };
+
+  const isExerciseCompletedToday = (exerciseId: string): boolean => {
+    const logs = exerciseLogs[exerciseId];
+    if (!logs || logs.length === 0) return false;
+
+    const today = new Date().toISOString().split('T')[0];
+    return logs.some(log => log.completed_at.startsWith(today));
+  };
+
+  const getExerciseCompletionCount = (exerciseId: string): number => {
+    const logs = exerciseLogs[exerciseId];
+    return logs ? logs.length : 0;
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={[typography.h2, { color: colors.gray[600], textAlign: 'center' }]}>
+            Loading your programs...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Program List View
+  if (!selectedProgram) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <SectionHeader 
+            title="My Programs" 
+            subtitle="Your assigned workout programs"
+          />
+        </View>
+
+        {programs.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="fitness-outline" size={80} color={colors.gray[200]} />
+            <Text style={[typography.h3, { color: colors.gray[600], textAlign: 'center', marginTop: 16 }]}>
+              No Programs Assigned
+            </Text>
+            <Text style={[typography.body, { color: colors.gray[600], textAlign: 'center', marginTop: 8 }]}>
+              Your trainer hasn't assigned any programs yet.{'\n'}Check back soon!
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={programs}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.programList}
+            renderItem={({ item }) => (
+              <DashboardCard
+                title={item.program?.name || 'Program'}
+                subtitle={`${item.program?.difficulty_level} • ${item.program?.duration_weeks} weeks`}
+                description={item.program?.description}
+                onPress={() => setSelectedProgram(item.program!)}
+                style={styles.programCard}
+              />
+            )}
+          />
+        )}
+      </SafeAreaView>
+    );
+  }
   const { user } = useAuth();
   const [programs, setPrograms] = useState<ClientProgram[]>([]);
   const [loading, setLoading] = useState(true);

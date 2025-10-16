@@ -56,7 +56,7 @@ import { ExerciseCard, ExerciseFilter } from '../components';
 import { useAuth } from '../../../context/AuthContext';
 import { FEATURES } from '../../../config/features';
 import type { Exercise, Program, ProgramDay, ProgramExercise, ExerciseFilters } from '../types';
-import { getExercises, createProgram, updateProgram, getProgramAssignments, getClients, saveClientAssignments } from '../data/mockData';
+import { getExercises, createProgram, updateProgram, getProgramAssignments, getClientsForAssignment, assignProgramToClients } from '../../../services/content-library';
 import { TrainerProgramsStackParamList } from '../../../navigation/types';
 
 type ProgramBuilderScreenNavigationProp = StackNavigationProp<TrainerProgramsStackParamList, 'ProgramBuilder'>;

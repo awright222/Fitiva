@@ -60,8 +60,9 @@ import { ExerciseCard, ExerciseFilter } from '../components';
 import { SectionHeader, Button } from '../../../components/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { FEATURES } from '../../../config/features';
-import type { Exercise, ExerciseFilters, Program } from '../types';
-import { getExercises, deleteExercise, getPrograms, updateProgram, deleteProgram, getProgramAssignments } from '../data/mockData';
+import type { Exercise, Program, ExerciseFilters as MainExerciseFilters } from '../../../types';
+import type { ExerciseFilters } from '../types';
+import { getExercises, deleteExercise, getPrograms, updateProgram, deleteProgram, getProgramAssignments } from '../../../services/content-library';
 import { TrainerProgramsStackParamList } from '../../../navigation/types';
 
 // TODO: Import proper navigation types
