@@ -28,7 +28,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import type { Exercise } from '../types';
+import type { Exercise } from '../../../types';
 
 // Colors optimized for seniors
 const colors = {
@@ -193,7 +193,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             color={colors.gray[600]} 
           />
           <Text style={styles.equipmentText}>
-            {exercise.equipment.replace('_', ' ')}
+            {exercise.equipment?.replace('_', ' ') || 'Unknown'}
           </Text>
         </View>
       </View>

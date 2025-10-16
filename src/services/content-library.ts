@@ -9,22 +9,21 @@ import {
   Program, 
   ProgramDay, 
   ProgramExercise,
-  ClientProgramAssignment,
   ExerciseLog
 } from '../types';
 
 export interface CreateExerciseData {
-  name: string;
-  description: string;
-  category: string;
-  muscle_groups: string[];
-  difficulty_level: string;
-  equipment_needed?: string[];
-  duration_minutes?: number;
+  type?: string; // Optional: 'exercise', 'video', 'pdf', 'article' - defaults to 'exercise'
+  title: string;
+  description?: string;
+  category?: string;
+  muscle_groups?: string;  // Database stores as VARCHAR, not array
+  difficulty?: string;
+  equipment?: string;
+  url?: string;
   thumbnail_url?: string;
   video_url?: string;
-  is_global?: boolean;
-  org_id?: string;
+  org_id?: number; // Should be number, not string
 }
 
 export interface CreateProgramData {
@@ -37,21 +36,20 @@ export interface CreateProgramData {
 }
 
 export interface CreateProgramDayData {
-  program_id: string;
+  program_id: number;
   day_number: number;
-  name: string;
-  description?: string;
+  notes?: string; // Matches actual database schema
 }
 
 export interface CreateProgramExerciseData {
-  program_day_id: string;
-  exercise_id: string;
+  program_day_id: number; // Should be number, not string
+  exercise_id: number; // Should be number, not string
   sets?: number;
   reps?: number;
-  duration_seconds?: number;
-  rest_seconds?: number;
+  weight?: number;
+  percentage?: number;
+  rpe?: number;
   notes?: string;
-  order_index: number;
 }
 
 // =====================================================
@@ -105,14 +103,11 @@ export async function getExercises(filters?: any): Promise<{ exercises: any[]; t
   // Map database fields to UI-compatible format
   const exercises = (data || []).map((exercise: any) => ({
     ...exercise,
-    title: exercise.name, // UI expects 'title'
-    difficulty: exercise.difficulty_level, // UI expects 'difficulty'
-    equipment: exercise.equipment_needed?.[0] || 'bodyweight', // UI expects single equipment string
-    estimated_duration: exercise.duration_minutes, // UI expects 'estimated_duration'
+    estimated_duration: 30, // Default duration since it's not in the database
     instructions: exercise.description || '', // Add instructions alias, ensure it's not undefined
-    // Add missing fields that the ExerciseCard expects
-    name: exercise.name,
-    difficulty_level: exercise.difficulty_level,
+    // Add legacy field mappings for compatibility
+    name: exercise.title, // Map title to name for backward compatibility
+    difficulty_level: exercise.difficulty, // Map difficulty to difficulty_level for backward compatibility
   }));
 
   return {
@@ -129,8 +124,7 @@ export async function createExercise(exerciseData: CreateExerciseData): Promise<
     .from('content_library')
     .insert({
       ...exerciseData,
-      created_by: user.id,
-      is_global: exerciseData.is_global || false
+      type: exerciseData.type || 'exercise' // Default to 'exercise' type
     })
     .select()
     .single();
@@ -143,7 +137,7 @@ export async function createExercise(exerciseData: CreateExerciseData): Promise<
   return data;
 }
 
-export async function updateExercise(id: string, updates: Partial<CreateExerciseData>): Promise<Exercise> {
+export async function updateExercise(id: number, updates: Partial<CreateExerciseData>): Promise<Exercise> {
   const { data, error } = await supabase
     .from('content_library')
     .update(updates)
@@ -159,7 +153,7 @@ export async function updateExercise(id: string, updates: Partial<CreateExercise
   return data;
 }
 
-export async function deleteExercise(id: string): Promise<boolean> {
+export async function deleteExercise(id: number): Promise<boolean> {
   const { error } = await supabase
     .from('content_library')
     .delete()
@@ -193,31 +187,30 @@ export async function getPrograms(filters?: any): Promise<ProgramListResponse> {
       program_days(
         id,
         day_number,
-        title,
-        description,
+        notes,
         program_exercises(
           id,
           sets,
           reps,
-          rest_seconds,
+          weight,
+          percentage,
+          rpe,
           notes,
-          exercise_order,
           exercise:content_library(
             id,
-            name,
+            title,
             description,
             category,
             muscle_groups,
-            difficulty_level,
-            equipment_needed,
-            duration_minutes,
+            difficulty,
+            equipment,
             thumbnail_url,
             video_url
           )
         )
       )
     `, { count: 'exact' })
-    .eq('created_by', user.id)
+    .eq('trainer_id', user.id)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -231,6 +224,7 @@ export async function getPrograms(filters?: any): Promise<ProgramListResponse> {
     name: program.title, // Add name alias for backwards compatibility
     days: program.program_days, // UI expects 'days'
     difficulty_level: program.difficulty, // Add difficulty_level alias
+    created_by: program.trainer_id, // Map trainer_id to created_by for UI compatibility
   }));
 
   return {
@@ -265,13 +259,41 @@ export async function createProgram(programData: CreateProgramData): Promise<Pro
   return data;
 }
 
-export async function updateProgram(id: string, updates: Partial<CreateProgramData>): Promise<Program> {
+export async function updateProgram(id: number, updates: Partial<CreateProgramData>): Promise<Program> {
+  // First, let's verify the program exists and we can read it
+  console.log('Checking if program exists with ID:', id);
+  const { data: existingProgram, error: readError } = await supabase
+    .from('programs')
+    .select('*')
+    .eq('id', id)
+    .single();
+    
+  console.log('Existing program check - data:', existingProgram, 'error:', readError);
+  
+  if (!existingProgram) {
+    throw new Error(`Program with ID ${id} not found`);
+  }
+
+  // Filter out fields that don't exist in the database schema
+  const allowedFields = ['title', 'description', 'trainer_id', 'client_id', 'org_id'];
+  const filteredUpdates = Object.keys(updates)
+    .filter(key => allowedFields.includes(key))
+    .reduce((obj: any, key) => {
+      obj[key] = (updates as any)[key];
+      return obj;
+    }, {});
+
+  console.log('Updating program with filtered data:', filteredUpdates);
+  console.log('Program ID being updated:', id, 'type:', typeof id);
+
   const { data, error } = await supabase
     .from('programs')
-    .update(updates)
+    .update(filteredUpdates)
     .eq('id', id)
     .select()
     .single();
+    
+  console.log('Update result - data:', data, 'error:', error);
 
   if (error) {
     console.error('Error updating program:', error);
@@ -281,7 +303,7 @@ export async function updateProgram(id: string, updates: Partial<CreateProgramDa
   return data;
 }
 
-export async function deleteProgram(id: string): Promise<boolean> {
+export async function deleteProgram(id: number): Promise<boolean> {
   // Delete in order due to foreign key constraints
   
   // 1. Get program day IDs
@@ -377,7 +399,7 @@ export async function updateProgramDay(id: string, updates: Partial<CreateProgra
   return data;
 }
 
-export async function deleteProgramDay(id: string): Promise<void> {
+export async function deleteProgramDay(id: number): Promise<void> {
   // Delete program exercises first
   await supabase
     .from('program_exercises')
@@ -407,13 +429,12 @@ export async function createProgramExercise(exerciseData: CreateProgramExerciseD
       *,
       exercise:content_library(
         id,
-        name,
+        title,
         description,
         category,
         muscle_groups,
-        difficulty_level,
-        equipment_needed,
-        duration_minutes,
+        difficulty,
+        equipment,
         thumbnail_url,
         video_url
       )
@@ -428,7 +449,7 @@ export async function createProgramExercise(exerciseData: CreateProgramExerciseD
   return data;
 }
 
-export async function updateProgramExercise(id: string, updates: Partial<CreateProgramExerciseData>): Promise<ProgramExercise> {
+export async function updateProgramExercise(id: number, updates: Partial<CreateProgramExerciseData>): Promise<ProgramExercise> {
   const { data, error } = await supabase
     .from('program_exercises')
     .update(updates)
@@ -437,13 +458,12 @@ export async function updateProgramExercise(id: string, updates: Partial<CreateP
       *,
       exercise:content_library(
         id,
-        name,
+        title,
         description,
         category,
         muscle_groups,
-        difficulty_level,
-        equipment_needed,
-        duration_minutes,
+        difficulty,
+        equipment,
         thumbnail_url,
         video_url
       )
@@ -458,7 +478,7 @@ export async function updateProgramExercise(id: string, updates: Partial<CreateP
   return data;
 }
 
-export async function deleteProgramExercise(id: string): Promise<void> {
+export async function deleteProgramExercise(id: number): Promise<void> {
   const { error } = await supabase
     .from('program_exercises')
     .delete()
@@ -505,11 +525,11 @@ export async function getClientPrograms(clientId?: string): Promise<any[]> {
             notes,
             exercise:content_library(
               id,
-              name,
+              title,
               description,
               category,
               muscle_groups,
-              difficulty_level,
+              difficulty,
               thumbnail_url,
               video_url
             )
@@ -535,18 +555,18 @@ export async function getClientsForAssignment(): Promise<any[]> {
   // Get trainer's organizations first
   const { data: userOrgs } = await supabase
     .from('user_organizations')
-    .select('organization_id')
+    .select('org_id')
     .eq('user_id', user.id);
 
   if (!userOrgs || userOrgs.length === 0) return [];
 
-  const orgIds = userOrgs.map(org => org.organization_id);
+  const orgIds = userOrgs.map(org => org.org_id);
 
   // Get clients in those organizations
   const { data: clientOrgs } = await supabase
     .from('user_organizations')
     .select('user_id')
-    .in('organization_id', orgIds);
+    .in('org_id', orgIds);
 
   if (!clientOrgs || clientOrgs.length === 0) return [];
 
@@ -567,7 +587,7 @@ export async function getClientsForAssignment(): Promise<any[]> {
   return data || [];
 }
 
-export async function assignProgramToClients(programId: string, clientIds: string[]): Promise<void> {
+export async function assignProgramToClients(programId: number, clientIds: string[]): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
 
@@ -595,7 +615,7 @@ export const saveClientAssignments = assignProgramToClients;
 // Alias for getting clients
 export const getClients = getClientsForAssignment;
 
-export async function unassignProgramFromClient(programId: string, clientId: string): Promise<void> {
+export async function unassignProgramFromClient(programId: number, clientId: string): Promise<void> {
   const { error } = await supabase
     .from('client_programs')
     .delete()
@@ -608,25 +628,12 @@ export async function unassignProgramFromClient(programId: string, clientId: str
   }
 }
 
-export async function getProgramAssignments(programId: string): Promise<any[]> {
-  const { data, error } = await supabase
-    .from('client_programs')
-    .select(`
-      *,
-      client:users!client_programs_client_id_fkey(
-        id,
-        email,
-        full_name
-      )
-    `)
-    .eq('program_id', programId);
-
-  if (error) {
-    console.error('Error fetching program assignments:', error);
-    return [];
-  }
-
-  return data || [];
+export async function getProgramAssignments(programId: number): Promise<any[]> {
+  // Note: client_programs table doesn't exist in current schema
+  // Programs are directly assigned via client_id field in programs table
+  // TODO: Implement proper assignment logic based on actual schema
+  console.log('getProgramAssignments called for program:', programId);
+  return []; // Return empty array for now
 }
 
 // =====================================================
@@ -670,11 +677,11 @@ export async function getExerciseLogs(filters: {
       *,
       program_exercise:program_exercises(
         *,
-        exercise:content_library(name, category),
+        exercise:content_library(title, category),
         program_day:program_days(
-          name,
+          title,
           day_number,
-          program:programs(name)
+          program:programs(title)
         )
       )
     `);

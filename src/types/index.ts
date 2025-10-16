@@ -7,15 +7,14 @@ export type UserOrgRole = 'client' | 'trainer' | 'org_manager';
 // User interface
 export interface User {
   id: string;  // UUID from Supabase auth
-  name: string;
+  full_name: string;
   email: string;
   role: UserRole;
+  phone_number?: string;
   date_of_birth?: string;  // ISO date string
-  gender?: string;
-  height_cm?: number;
-  weight_kg?: number;
-  location?: string;
-  preferred_language?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  medical_notes?: string;
   created_at: string;  // ISO date string
   updated_at: string;  // ISO date string
 }
@@ -47,19 +46,21 @@ export interface Session {
 
 // Program interface
 export interface Program {
-  id: string;
+  id: number; // Database uses SERIAL (integer), not UUID
   title: string;
   name?: string; // Alias for title for backwards compatibility
   description?: string;
-  duration_weeks: number;
-  difficulty: string;
+  duration_weeks?: number;
+  difficulty?: string;
   difficulty_level?: string; // Alias for difficulty for backwards compatibility
   category?: string;
   is_template?: boolean;
   is_active?: boolean;
   goals?: string[];
-  created_by: string;
-  org_id?: string;
+  trainer_id: string; // UUID reference to trainer (users table)
+  client_id?: string; // UUID reference to client (users table) - nullable
+  created_by?: string; // Legacy alias for trainer_id
+  org_id?: number; // Should be number, not string
   created_at: string;
   updated_at: string;
   program_days?: ProgramDay[];
@@ -80,14 +81,13 @@ export interface AuthUser {
 export interface SignUpData {
   email: string;
   password: string;
-  name: string;
+  full_name: string;
   role: UserRole;
+  phone_number?: string;
   date_of_birth?: string;  // ISO date string
-  gender?: string;
-  height_cm?: number;
-  weight_kg?: number;
-  location?: string;
-  preferred_language?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  medical_notes?: string;
 }
 
 export interface SignInData {
@@ -97,7 +97,7 @@ export interface SignInData {
 
 // Content Library & Exercise Types
 export interface Exercise {
-  id: string;
+  id: number;
   name: string;
   title: string; // Alias for name for UI compatibility
   description: string;
@@ -120,8 +120,8 @@ export interface Exercise {
 }
 
 export interface ProgramDay {
-  id: string;
-  program_id: string;
+  id: number;
+  program_id: number;
   day_number: number;
   name: string;
   description?: string;
@@ -131,9 +131,9 @@ export interface ProgramDay {
 }
 
 export interface ProgramExercise {
-  id: string;
-  program_day_id: string;
-  exercise_id: string;
+  id: number;
+  program_day_id: number;
+  exercise_id: number;
   exercise?: Exercise;
   sets?: number;
   reps?: number;
@@ -147,7 +147,7 @@ export interface ProgramExercise {
 
 export interface ClientProgramAssignment {
   id: string;
-  program_id: string;
+  program_id: number;
   client_id: string;
   assigned_date: string;
   start_date?: string;
@@ -158,17 +158,32 @@ export interface ClientProgramAssignment {
   client?: User;
 }
 
-export interface ExerciseLog {
+// Client Program interface (for client_programs table)
+export interface ClientProgram {
   id: string;
-  program_exercise_id: string;
   client_id: string;
-  completed_sets?: number;
-  completed_reps?: number;
-  completed_duration_seconds?: number;
-  notes?: string;
-  completed_at: string;
+  program_id: number;
+  assigned_by: string;
+  assigned_at: string;
+  start_date: string;
+  end_date?: string;
+  is_active: boolean;
+  completion_percentage: number;
+  current_day: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface ExerciseLog {
+  id: string;
+  client_program_id: string;
+  program_exercise_id: string;
+  completed_at: string;
+  actual_sets?: number;
+  actual_reps?: string;
+  actual_duration?: number;
+  notes?: string;
+  created_at: string;
   program_exercise?: ProgramExercise;
 }
 

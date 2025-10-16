@@ -357,7 +357,8 @@ export const TrainerContentLibraryScreen: React.FC = () => {
   };
 
   const handleEditProgram = (program: Program) => {
-    if (program.created_by !== user?.id && program.created_by !== 'trainer_1') {
+    const canEdit = program.trainer_id === user?.id || program.created_by === user?.id || program.created_by === 'trainer_1';
+    if (!canEdit) {
       Alert.alert(
         'Cannot Edit',
         'You can only edit programs that you created.',
@@ -377,9 +378,10 @@ export const TrainerContentLibraryScreen: React.FC = () => {
     
     // For development: Allow deletion of programs created by trainer_1 or current user
     console.log('Checking authorization...');
+    console.log('program.trainer_id === user?.id:', program.trainer_id === user?.id);
     console.log('program.created_by === user?.id:', program.created_by === user?.id);
     console.log('program.created_by === trainer_1:', program.created_by === 'trainer_1');
-    const canDelete = program.created_by === user?.id || program.created_by === 'trainer_1';
+    const canDelete = program.trainer_id === user?.id || program.created_by === user?.id || program.created_by === 'trainer_1';
     console.log('Can delete program?', canDelete);
     
     if (!canDelete) {
@@ -501,7 +503,7 @@ export const TrainerContentLibraryScreen: React.FC = () => {
         )}
         
         {/* Action buttons for programs created by this user */}
-        {(item.created_by === user?.id || item.created_by === 'trainer_1') && (
+        {(item.trainer_id === user?.id || item.created_by === user?.id || item.created_by === 'trainer_1') && (
           <View style={styles.programActions}>
             <TouchableOpacity
               style={styles.programActionButton}
@@ -674,7 +676,7 @@ export const TrainerContentLibraryScreen: React.FC = () => {
             <FlatList
               data={programs}
               renderItem={renderProgram}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.id.toString()}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.programsList}
@@ -687,7 +689,7 @@ export const TrainerContentLibraryScreen: React.FC = () => {
       <FlatList
         data={exercises}
         renderItem={renderExercise}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         showsVerticalScrollIndicator={false}

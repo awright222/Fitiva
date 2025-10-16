@@ -105,7 +105,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
       signUpData: {
         email: formData.email.trim(),
         password: formData.password,
-        name: formData.name.trim(),
+        full_name: formData.name.trim(),
         date_of_birth: formData.dateOfBirth || undefined,
       }
     });

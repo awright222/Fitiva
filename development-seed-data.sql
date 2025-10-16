@@ -45,140 +45,18 @@ BEGIN
 END $$;
 
 -- =====================================================
--- 2. CREATE TEST USER ACCOUNTS 
+-- 2. NOTE: USER ACCOUNTS MUST BE CREATED MANUALLY
 -- =====================================================
--- NOTE: These use placeholder passwords. In production, users sign up normally.
-
--- Create Trainer Account
-INSERT INTO auth.users (
-  id,
-  instance_id,
-  email,
-  encrypted_password,
-  email_confirmed_at,
-  created_at,
-  updated_at,
-  raw_user_meta_data,
-  is_super_admin,
-  role
-) VALUES (
-  '22222222-2222-2222-2222-222222222222',
-  '00000000-0000-0000-0000-000000000000',
-  'trainer@fitiva.com',
-  '$2a$10$XqXZn6LfzQ4N9QnQZV8vHO7fO.EqQkJ9GpJ3xKfQV8K2p6x8Y7Qq2', -- Password: FitivaTrainer2024!
-  NOW(),
-  NOW(),
-  NOW(),
-  '{"name": "Sarah Johnson", "role": "trainer"}',
-  false,
-  'authenticated'
-);
-
--- Create Client Account 1
-INSERT INTO auth.users (
-  id,
-  instance_id, 
-  email,
-  encrypted_password,
-  email_confirmed_at,
-  created_at,
-  updated_at,
-  raw_user_meta_data,
-  is_super_admin,
-  role
-) VALUES (
-  '33333333-3333-3333-3333-333333333333',
-  '00000000-0000-0000-0000-000000000000',
-  'client1@fitiva.com',
-  '$2a$10$XqXZn6LfzQ4N9QnQZV8vHO7fO.EqQkJ9GpJ3xKfQV8K2p6x8Y7Qq2', -- Password: FitivaClient2024!
-  NOW(),
-  NOW(),
-  NOW(),
-  '{"name": "Robert Smith", "role": "client"}',
-  false,
-  'authenticated'
-);
-
--- Create Client Account 2
-INSERT INTO auth.users (
-  id,
-  instance_id,
-  email, 
-  encrypted_password,
-  email_confirmed_at,
-  created_at,
-  updated_at,
-  raw_user_meta_data,
-  is_super_admin,
-  role
-) VALUES (
-  '44444444-4444-4444-4444-444444444444',
-  '00000000-0000-0000-0000-000000000000',
-  'client2@fitiva.com', 
-  '$2a$10$XqXZn6LfzQ4N9QnQZV8vHO7fO.EqQkJ9GpJ3xKfQV8K2p6x8Y7Qq2', -- Password: FitivaClient2024!
-  NOW(),
-  NOW(),
-  NOW(),
-  '{"name": "Mary Wilson", "role": "client"}',
-  false,
-  'authenticated'
-);
-
--- Create Organization Manager Account
-INSERT INTO auth.users (
-  id,
-  instance_id,
-  email,
-  encrypted_password, 
-  email_confirmed_at,
-  created_at,
-  updated_at,
-  raw_user_meta_data,
-  is_super_admin,
-  role
-) VALUES (
-  '55555555-5555-5555-5555-555555555555',
-  '00000000-0000-0000-0000-000000000000',
-  'manager@fitiva.com',
-  '$2a$10$XqXZn6LfzQ4N9QnQZV8vHO7fO.EqQkJ9GpJ3xKfQV8K2p6x8Y7Qq2', -- Password: FitivaManager2024!
-  NOW(),
-  NOW(),
-  NOW(),
-  '{"name": "David Brown", "role": "org_manager"}',
-  false,
-  'authenticated'
-);
-
+-- 
+-- You must create test accounts through normal signup process:
+--
+-- Trainer: trainer@fitiva.com / FitivaTrainer2024!
+-- Client 1: client1@fitiva.com / FitivaClient2024!
+-- Client 2: client2@fitiva.com / FitivaClient2024!
+-- Manager: manager@fitiva.com / FitivaManager2024!
+--
+-- Then run the link script at the bottom to connect them to this data.
 -- =====================================================
--- 3. CREATE USER ORGANIZATION RELATIONSHIPS
--- =====================================================
-
--- Add trainer to organization
-INSERT INTO user_organizations (user_id, org_id, role)
-SELECT 
-  '22222222-2222-2222-2222-222222222222',
-  o.id,
-  'trainer'
-FROM organizations o 
-WHERE o.name = 'Fitiva Fitness Center';
-
--- Add clients to organization
-INSERT INTO user_organizations (user_id, org_id, role)
-SELECT 
-  unnest(ARRAY['33333333-3333-3333-3333-333333333333', '44444444-4444-4444-4444-444444444444'])::uuid,
-  o.id,
-  'client'
-FROM organizations o 
-WHERE o.name = 'Fitiva Fitness Center';
-
--- Add manager to organization  
-INSERT INTO user_organizations (user_id, org_id, role)
-SELECT 
-  '55555555-5555-5555-5555-555555555555',
-  o.id,
-  'org_manager'
-FROM organizations o 
-WHERE o.name = 'Fitiva Fitness Center';
 
 -- =====================================================
 -- 4. CREATE SAMPLE EXERCISES
@@ -186,50 +64,62 @@ WHERE o.name = 'Fitiva Fitness Center';
 
 -- Only create if content_library table exists and has required columns
 DO $$
+DECLARE
+  created_by_nullable boolean := false;
 BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'content_library') AND
-     EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'content_library' AND column_name = 'created_by') THEN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'content_library') THEN
+    
+    -- Check if created_by is nullable
+    SELECT is_nullable = 'YES' INTO created_by_nullable
+    FROM information_schema.columns 
+    WHERE table_name = 'content_library' AND column_name = 'created_by';
     
     -- Insert sample exercises
-    INSERT INTO content_library (
-      title, description, category, muscle_groups, difficulty, 
-      equipment, type, is_global, created_by, created_at
-    ) VALUES 
-    ('Push-ups', 'Classic bodyweight exercise targeting chest, shoulders, and triceps. Great for building upper body strength.', 
-     'strength', ARRAY['chest', 'shoulders', 'triceps'], 'beginner', 
-     ARRAY['bodyweight'], 'exercise', true, '22222222-2222-2222-2222-222222222222', NOW()),
+    IF created_by_nullable THEN
+      -- If created_by is nullable, use NULL
+      INSERT INTO content_library (
+        title, description, category, muscle_groups, difficulty, 
+        equipment, type, is_global, created_by, created_at
+      ) VALUES 
+      ('Push-ups', 'Classic bodyweight exercise targeting chest, shoulders, and triceps. Great for building upper body strength.', 
+       'strength', ARRAY['chest', 'shoulders', 'triceps'], 'beginner', 
+       ARRAY['bodyweight'], 'exercise', true, NULL, NOW()),
+       
+      ('Bodyweight Squats', 'Fundamental lower body exercise that strengthens legs and glutes. Perfect for seniors starting their fitness journey.',
+       'strength', ARRAY['quadriceps', 'glutes', 'hamstrings'], 'beginner',
+       ARRAY['bodyweight'], 'exercise', true, NULL, NOW()),
+       
+      ('Seated Row with Resistance Band', 'Excellent back and bicep exercise that can be done safely from a chair. Great for posture improvement.',
+       'strength', ARRAY['back', 'biceps'], 'beginner', 
+       ARRAY['resistance_bands'], 'exercise', true, NULL, NOW()),
+       
+      ('Wall Angels', 'Gentle shoulder mobility exercise performed against a wall. Helps improve posture and shoulder flexibility.',
+       'mobility', ARRAY['shoulders', 'upper_back'], 'beginner',
+       ARRAY['none'], 'exercise', true, NULL, NOW()),
+       
+      ('Chair-Assisted Lunges', 'Modified lunges using a chair for balance and support. Builds leg strength while maintaining safety.',
+       'strength', ARRAY['quadriceps', 'glutes', 'calves'], 'intermediate',
+       ARRAY['chair'], 'exercise', false, NULL, NOW()),
+       
+      ('Gentle March in Place', 'Low-impact cardio exercise that can be done anywhere. Great warm-up or light cardio option.',
+       'cardio', ARRAY['full_body'], 'beginner',
+       ARRAY['bodyweight'], 'exercise', true, NULL, NOW()),
+       
+      ('Seated Spinal Twist', 'Gentle core and back mobility exercise done from a chair. Improves spinal flexibility.',
+       'flexibility', ARRAY['core', 'lower_back'], 'beginner',
+       ARRAY['chair'], 'exercise', true, NULL, NOW()),
+       
+      ('Modified Plank', 'Core strengthening exercise that can be done on knees or against a wall for different difficulty levels.',
+       'strength', ARRAY['core', 'shoulders'], 'intermediate', 
+       ARRAY['bodyweight'], 'exercise', true, NULL, NOW());
+    ELSE
+      -- If created_by is required, skip exercise creation
+      RAISE NOTICE 'Skipped exercises creation - created_by field is required. Create accounts first, then run link script.';
+    END IF;
      
-    ('Bodyweight Squats', 'Fundamental lower body exercise that strengthens legs and glutes. Perfect for seniors starting their fitness journey.',
-     'strength', ARRAY['quadriceps', 'glutes', 'hamstrings'], 'beginner',
-     ARRAY['bodyweight'], 'exercise', true, '22222222-2222-2222-2222-222222222222', NOW()),
-     
-    ('Seated Row with Resistance Band', 'Excellent back and bicep exercise that can be done safely from a chair. Great for posture improvement.',
-     'strength', ARRAY['back', 'biceps'], 'beginner', 
-     ARRAY['resistance_bands'], 'exercise', true, '22222222-2222-2222-2222-222222222222', NOW()),
-     
-    ('Wall Angels', 'Gentle shoulder mobility exercise performed against a wall. Helps improve posture and shoulder flexibility.',
-     'mobility', ARRAY['shoulders', 'upper_back'], 'beginner',
-     ARRAY['none'], 'exercise', true, '22222222-2222-2222-2222-222222222222', NOW()),
-     
-    ('Chair-Assisted Lunges', 'Modified lunges using a chair for balance and support. Builds leg strength while maintaining safety.',
-     'strength', ARRAY['quadriceps', 'glutes', 'calves'], 'intermediate',
-     ARRAY['chair'], 'exercise', false, '22222222-2222-2222-2222-222222222222', NOW()),
-     
-    ('Gentle March in Place', 'Low-impact cardio exercise that can be done anywhere. Great warm-up or light cardio option.',
-     'cardio', ARRAY['full_body'], 'beginner',
-     ARRAY['bodyweight'], 'exercise', true, '22222222-2222-2222-2222-222222222222', NOW()),
-     
-    ('Seated Spinal Twist', 'Gentle core and back mobility exercise done from a chair. Improves spinal flexibility.',
-     'flexibility', ARRAY['core', 'lower_back'], 'beginner',
-     ARRAY['chair'], 'exercise', true, '22222222-2222-2222-2222-222222222222', NOW()),
-     
-    ('Modified Plank', 'Core strengthening exercise that can be done on knees or against a wall for different difficulty levels.',
-     'strength', ARRAY['core', 'shoulders'], 'intermediate', 
-     ARRAY['bodyweight'], 'exercise', true, '22222222-2222-2222-2222-222222222222', NOW());
-     
-    RAISE NOTICE 'Created sample exercises in content_library';
+    RAISE NOTICE 'Checked content_library creation';
   ELSE
-    RAISE NOTICE 'Skipped exercises creation - content_library table or columns missing';
+    RAISE NOTICE 'Skipped exercises creation - content_library table missing';
   END IF;
 END $$;
 
@@ -239,30 +129,39 @@ END $$;
 
 -- Only create if programs table exists and has required columns
 DO $$
+DECLARE
+  created_by_nullable boolean := false;
 BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'programs') AND
-     EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'programs' AND column_name = 'created_by') THEN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'programs') THEN
     
-    -- Insert Beginner Program
-    INSERT INTO programs (
-      id, title, description, created_by, duration_weeks, difficulty, 
-      is_template, goals, created_at, updated_at
-    ) VALUES (
-      '66666666-6666-6666-6666-666666666666',
-      'Senior Strength Foundations',
-      'A gentle 4-week program designed specifically for seniors beginning their fitness journey. Focuses on building basic strength, improving balance, and enhancing daily functional movement.',
-      '22222222-2222-2222-2222-222222222222',
-      4,
-      'beginner', 
-      true,
-      ARRAY['strength_building', 'balance', 'functional_movement'],
-      NOW(),
-      NOW()
-    );
+    -- Check if created_by is nullable
+    SELECT is_nullable = 'YES' INTO created_by_nullable
+    FROM information_schema.columns 
+    WHERE table_name = 'programs' AND column_name = 'created_by';
     
-    RAISE NOTICE 'Created sample program: Senior Strength Foundations';
+    IF created_by_nullable THEN
+      -- Insert Beginner Program with NULL created_by
+      INSERT INTO programs (
+        id, title, description, created_by, duration_weeks, difficulty, 
+        is_template, goals, created_at, updated_at
+      ) VALUES (
+        '66666666-6666-6666-6666-666666666666',
+        'Senior Strength Foundations',
+        'A gentle 4-week program designed specifically for seniors beginning their fitness journey. Focuses on building basic strength, improving balance, and enhancing daily functional movement.',
+        NULL,
+        4,
+        'beginner', 
+        true,
+        ARRAY['strength_building', 'balance', 'functional_movement'],
+        NOW(),
+        NOW()
+      );
+      RAISE NOTICE 'Created sample program: Senior Strength Foundations';
+    ELSE
+      RAISE NOTICE 'Skipped programs creation - created_by field is required. Create accounts first, then run link script.';
+    END IF;
   ELSE
-    RAISE NOTICE 'Skipped programs creation - programs table or columns missing';
+    RAISE NOTICE 'Skipped programs creation - programs table missing';
   END IF;
 END $$;
 
@@ -589,112 +488,13 @@ BEGIN
 END $$;
 
 -- =====================================================
--- 8. ASSIGN PROGRAMS TO CLIENTS
+-- 8. NOTE: USER ASSIGNMENTS MUST BE DONE AFTER SIGNUP
 -- =====================================================
-
--- Only create if client_programs table exists
-DO $$
-DECLARE
-  program_id_type varchar;
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'client_programs') THEN
-    
-    -- Check what type program_id is
-    SELECT data_type INTO program_id_type 
-    FROM information_schema.columns 
-    WHERE table_name = 'client_programs' AND column_name = 'program_id';
-    
-    RAISE NOTICE 'client_programs.program_id type: %', program_id_type;
-    
-    -- Assign program to both test clients with appropriate ID handling
-    IF program_id_type = 'integer' THEN
-      -- For integer program_id, get the actual program ID
-      INSERT INTO client_programs (
-        client_id, program_id, assigned_by, assigned_at, start_date, 
-        is_active, completion_percentage, current_day, created_at, updated_at
-      )
-      SELECT 
-        unnest(ARRAY['33333333-3333-3333-3333-333333333333', '44444444-4444-4444-4444-444444444444'])::uuid,
-        p.id,
-        '22222222-2222-2222-2222-222222222222'::uuid,
-        NOW(),
-        NOW(),
-        true,
-        CASE WHEN row_number() OVER() = 1 THEN 0.0 ELSE 15.0 END,
-        1,
-        NOW(),
-        NOW()
-      FROM programs p 
-      WHERE p.title = 'Senior Strength Foundations';
-    ELSE
-      -- For UUID program_id, use the hardcoded UUID
-      INSERT INTO client_programs (
-        client_id, program_id, assigned_by, assigned_at, start_date, 
-        is_active, completion_percentage, current_day, created_at, updated_at
-      ) VALUES 
-      ('33333333-3333-3333-3333-333333333333', '66666666-6666-6666-6666-666666666666', 
-       '22222222-2222-2222-2222-222222222222', NOW(), NOW(), 
-       true, 0.0, 1, NOW(), NOW()),
-       
-      ('44444444-4444-4444-4444-444444444444', '66666666-6666-6666-6666-666666666666',
-       '22222222-2222-2222-2222-222222222222', NOW(), NOW(),
-       true, 15.0, 1, NOW(), NOW());
-    END IF;
-    
-    RAISE NOTICE 'Assigned program to test clients';
-  ELSE  
-    RAISE NOTICE 'Skipped client assignments - client_programs table missing';
-  END IF;
-END $$;
-
+-- 
+-- After creating accounts through signup, run the link script
+-- at the bottom of this file to connect users to organizations
+-- and assign programs to clients.
 -- =====================================================
--- 9. CREATE SAMPLE EXERCISE LOGS
--- =====================================================
-
--- Only create if exercise_logs table exists
-DO $$
-DECLARE
-  client_program_count integer;
-  program_exercise_count integer;
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'exercise_logs') THEN
-    
-    -- Check if we have the related data first
-    SELECT COUNT(*) INTO client_program_count FROM client_programs WHERE client_id = '33333333-3333-3333-3333-333333333333';
-    SELECT COUNT(*) INTO program_exercise_count FROM program_exercises;
-    
-    RAISE NOTICE 'Found % client_programs and % program_exercises for exercise logs', client_program_count, program_exercise_count;
-    
-    IF client_program_count > 0 AND program_exercise_count > 0 THEN
-      -- Add some sample workout completion data for Client 1
-      -- This would normally be created when clients complete workouts
-      INSERT INTO exercise_logs (
-        client_program_id, program_exercise_id, completed_at, 
-        actual_sets, actual_reps, notes, created_at
-      )
-      SELECT 
-        cp.id,
-        pe.id,
-        NOW() - INTERVAL '2 days',
-        2,
-        '10',
-        'Felt good, could probably do more next time',
-        NOW() - INTERVAL '2 days'
-      FROM client_programs cp
-      JOIN programs p ON p.id = cp.program_id
-      JOIN program_days pd ON pd.program_id = p.id
-      JOIN program_exercises pe ON pe.program_day_id = pd.id
-      WHERE cp.client_id = '33333333-3333-3333-3333-333333333333'
-      LIMIT 1;
-      
-      RAISE NOTICE 'Created sample exercise logs'; 
-    ELSE
-      RAISE NOTICE 'Skipped exercise logs creation - no client_programs or program_exercises found';
-    END IF;
-  ELSE
-    RAISE NOTICE 'Skipped exercise logs creation - table missing';
-  END IF;
-END $$;
 
 -- =====================================================
 -- 10. VERIFICATION QUERIES
@@ -705,8 +505,6 @@ DO $$
 BEGIN
   RAISE NOTICE '=== SEED DATA SUMMARY ===';
   RAISE NOTICE 'Organizations: %', (SELECT COUNT(*) FROM organizations WHERE name = 'Fitiva Fitness Center');
-  RAISE NOTICE 'Test Users: %', (SELECT COUNT(*) FROM auth.users WHERE email LIKE '%fitiva.com');
-  RAISE NOTICE 'User-Org Relationships: %', (SELECT COUNT(*) FROM user_organizations);
   
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'content_library') THEN
     RAISE NOTICE 'Sample Exercises: %', (SELECT COUNT(*) FROM content_library);
@@ -716,29 +514,106 @@ BEGIN
     RAISE NOTICE 'Sample Programs: %', (SELECT COUNT(*) FROM programs);
   END IF;
   
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'client_programs') THEN  
-    RAISE NOTICE 'Client Assignments: %', (SELECT COUNT(*) FROM client_programs);
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'program_days') THEN
+    RAISE NOTICE 'Program Days: %', (SELECT COUNT(*) FROM program_days);
   END IF;
+  
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'program_exercises') THEN
+    RAISE NOTICE 'Program Exercises: %', (SELECT COUNT(*) FROM program_exercises);
+  END IF;
+  
+  RAISE NOTICE 'Next: Create test accounts through signup, then run link script!';
 END $$;
 
 -- =====================================================
--- DONE!
+-- LINK SCRIPT - RUN AFTER CREATING ACCOUNTS
 -- =====================================================
 -- 
--- TEST ACCOUNTS CREATED:
--- ====================
+-- After creating accounts through the signup flow, run this
+-- script to link users to organizations and assign programs:
+
+/*
+-- Update created_by fields to use real trainer ID
+UPDATE content_library 
+SET created_by = (SELECT id FROM auth.users WHERE email = 'trainer@fitiva.com')
+WHERE created_by IS NULL;
+
+UPDATE programs 
+SET created_by = (SELECT id FROM auth.users WHERE email = 'trainer@fitiva.com')
+WHERE created_by IS NULL;
+
+-- Link users to organization
+INSERT INTO user_organizations (user_id, org_id, role)
+SELECT 
+  au.id,
+  o.id,
+  CASE 
+    WHEN au.email = 'trainer@fitiva.com' THEN 'trainer'
+    WHEN au.email IN ('client1@fitiva.com', 'client2@fitiva.com') THEN 'client'  
+    WHEN au.email = 'manager@fitiva.com' THEN 'org_manager'
+  END
+FROM auth.users au
+CROSS JOIN organizations o
+WHERE au.email IN ('trainer@fitiva.com', 'client1@fitiva.com', 'client2@fitiva.com', 'manager@fitiva.com')
+  AND o.name = 'Fitiva Fitness Center'
+ON CONFLICT DO NOTHING;
+
+-- Assign programs to clients
+INSERT INTO client_programs (
+  client_id, program_id, assigned_by, assigned_at, start_date,
+  is_active, completion_percentage, current_day, created_at, updated_at
+)
+SELECT 
+  au.id,
+  p.id,
+  (SELECT id FROM auth.users WHERE email = 'trainer@fitiva.com'),
+  NOW(),
+  NOW(),
+  true,
+  CASE WHEN au.email = 'client1@fitiva.com' THEN 0.0 ELSE 15.0 END,
+  1,
+  NOW(),
+  NOW()
+FROM auth.users au
+CROSS JOIN programs p  
+WHERE au.email IN ('client1@fitiva.com', 'client2@fitiva.com')
+  AND p.title = 'Senior Strength Foundations'
+ON CONFLICT DO NOTHING;
+
+-- Add sample exercise log for client1
+INSERT INTO exercise_logs (
+  client_program_id, program_exercise_id, completed_at, 
+  actual_sets, actual_reps, notes, created_at
+)
+SELECT 
+  cp.id,
+  pe.id,
+  NOW() - INTERVAL '2 days',
+  2,
+  '10',
+  'Felt good, could probably do more next time',
+  NOW() - INTERVAL '2 days'
+FROM client_programs cp
+JOIN auth.users au ON au.id = cp.client_id
+JOIN programs p ON p.id = cp.program_id
+JOIN program_days pd ON pd.program_id = p.id
+JOIN program_exercises pe ON pe.program_day_id = pd.id
+WHERE au.email = 'client1@fitiva.com'
+  AND p.title = 'Senior Strength Foundations'
+LIMIT 1
+ON CONFLICT DO NOTHING;
+*/
+
+-- =====================================================
+-- SETUP COMPLETE!
+-- =====================================================
 -- 
--- Trainer: trainer@fitiva.com / FitivaTrainer2024!
--- Client 1: client1@fitiva.com / FitivaClient2024!  
--- Client 2: client2@fitiva.com / FitivaClient2024!
--- Manager: manager@fitiva.com / FitivaManager2024!
---
--- All accounts are linked to "Fitiva Fitness Center" organization
--- Clients are assigned to the "Senior Strength Foundations" program
--- Sample exercises and workout data are available for testing
---
--- You can now:
--- 1. Log in as trainer to see content library and programs
--- 2. Log in as clients to see assigned programs  
--- 3. Test the full trainer-client workflow
+-- 1. Run the main seed script (this file)
+-- 2. Create accounts through signup:
+--    • trainer@fitiva.com / FitivaTrainer2024!
+--    • client1@fitiva.com / FitivaClient2024!  
+--    • client2@fitiva.com / FitivaClient2024!
+--    • manager@fitiva.com / FitivaManager2024!
+-- 3. Run the commented link script above
+-- 4. Test the full app workflow!
 -- =====================================================

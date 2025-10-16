@@ -55,8 +55,10 @@ import { SectionHeader, Button, InputField } from '../../../components/ui';
 import { ExerciseCard, ExerciseFilter } from '../components';
 import { useAuth } from '../../../context/AuthContext';
 import { FEATURES } from '../../../config/features';
-import type { Exercise, Program, ProgramDay, ProgramExercise, ExerciseFilters } from '../types';
-import { getExercises, createProgram, updateProgram, getProgramAssignments, getClientsForAssignment, assignProgramToClients } from '../../../services/content-library';
+import type { Exercise, ProgramDay, ProgramExercise, ExerciseFilters } from '../types';
+import type { Program } from '../../../types'; // Use main Program type to match service return type
+import { getExercises, createProgram, updateProgram, getProgramAssignments, getClientsForAssignment, getClients, assignProgramToClients, saveClientAssignments, createProgramDay, createProgramExercise } from '../../../services/content-library';
+import { supabase } from '../../../services/supabase';
 import { TrainerProgramsStackParamList } from '../../../navigation/types';
 
 type ProgramBuilderScreenNavigationProp = StackNavigationProp<TrainerProgramsStackParamList, 'ProgramBuilder'>;
@@ -117,13 +119,13 @@ export const ProgramBuilderScreen: React.FC = () => {
   const isEdit = route.params?.mode === 'edit';
   const existingProgram = route.params?.program;
 
-  // Form state
+  // Form state - ensure all values are always defined to prevent controlled/uncontrolled warnings
   const [formData, setFormData] = useState<ProgramFormData>({
-    title: existingProgram?.title || '',
-    description: existingProgram?.description || '',
-    duration_weeks: existingProgram?.duration_weeks || 4,
-    difficulty: existingProgram?.difficulty || 'beginner',
-    days: existingProgram?.days || [],
+    title: existingProgram?.title ?? '',
+    description: existingProgram?.description ?? '',
+    duration_weeks: existingProgram?.duration_weeks ?? 4,
+    difficulty: existingProgram?.difficulty ?? 'beginner',
+    days: existingProgram?.days ?? [],
   });
 
   // UI state
@@ -147,9 +149,92 @@ export const ProgramBuilderScreen: React.FC = () => {
   useEffect(() => {
     if (isEdit && existingProgram) {
       loadProgramAssignments();
+      loadFullProgramData(); // Load complete program structure from database
     }
     loadAvailableClients();
   }, [isEdit, existingProgram]);
+
+  // Load complete program data from database when editing
+  const loadFullProgramData = async () => {
+    if (!existingProgram?.id) return;
+    
+    try {
+      console.log('Loading full program data for ID:', existingProgram.id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('programs')
+        .select(`
+          *,
+          program_days(
+            id,
+            day_number,
+            notes,
+            program_exercises(
+              id,
+              exercise_id,
+              sets,
+              reps,
+              weight,
+              percentage,
+              rpe,
+              notes,
+              exercise:content_library(
+                id,
+                title,
+                description
+              )
+            )
+          )
+        `)
+        .eq('id', existingProgram.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading full program data:', error);
+        return;
+      }
+
+      if (data && data.program_days) {
+        console.log('Full program data loaded:', data);
+        console.log('Program days found:', data.program_days.length);
+        
+        // Update form data with loaded program structure
+        setFormData(prev => ({
+          ...prev,
+          days: data.program_days.map((day: any) => ({
+            id: day.id ?? Date.now(),
+            program_id: data.id ?? 0,
+            day_number: day.day_number ?? 1,
+            title: `Day ${day.day_number ?? 1}`,
+            description: day.notes ?? '',
+            is_rest_day: false,
+            created_at: day.created_at ?? new Date().toISOString(),
+            exercises: (day.program_exercises || []).map((ex: any) => ({
+              id: ex.id ?? Date.now(),
+              program_day_id: day.id ?? 0,
+              exercise_id: ex.exercise_id ?? 0,
+              order_index: 1,
+              sets: ex.sets ?? 3,
+              reps: (ex.reps ?? 10).toString(),
+              weight_kg: ex.weight ?? 0,
+              rpe: ex.rpe ?? 6,
+              rest_seconds: ex.rest_seconds ?? 60,
+              notes: ex.notes ?? '',
+              is_superset: false,
+              created_at: ex.created_at ?? new Date().toISOString(),
+              exercise: ex.exercise, // Include exercise details
+            }))
+          }))
+        }));
+        
+        console.log('Form data updated with', data.program_days.length, 'days');
+      }
+    } catch (error) {
+      console.error('Error in loadFullProgramData:', error);
+    }
+  };
 
   const loadExercises = async () => {
     try {
@@ -206,16 +291,12 @@ export const ProgramBuilderScreen: React.FC = () => {
       console.log('Saving client assignments for program:', existingProgram.id);
       console.log('Selected clients:', assignedClients);
       
-      const success = await saveClientAssignments(existingProgram.id, assignedClients);
-      if (success) {
-        console.log('Client assignments saved successfully');
-        // Reload the program assignments to refresh the UI
-        await loadProgramAssignments();
-        setShowClientSelector(false);
-        Alert.alert('Success', `Updated client assignments for ${existingProgram.title}. Check the program screen!`);
-      } else {
-        Alert.alert('Error', 'Failed to save client assignments');
-      }
+      await saveClientAssignments(existingProgram.id, assignedClients);
+      console.log('Client assignments saved successfully');
+      // Reload the program assignments to refresh the UI
+      await loadProgramAssignments();
+      setShowClientSelector(false);
+      Alert.alert('Success', `Updated client assignments for ${existingProgram.title}. Check the program screen!`);
     } catch (error) {
       console.error('Error saving client assignments:', error);
       Alert.alert('Error', 'Failed to save client assignments');
@@ -224,7 +305,7 @@ export const ProgramBuilderScreen: React.FC = () => {
 
   const addDay = () => {
     const newDay: ProgramDay = {
-      id: `day_${Date.now()}`,
+      id: Date.now(),
       program_id: existingProgram?.id || '',
       day_number: formData.days.length + 1,
       title: `Day ${formData.days.length + 1}`,
@@ -273,7 +354,7 @@ export const ProgramBuilderScreen: React.FC = () => {
 
   const addExerciseToDay = (dayIndex: number, exercise: Exercise) => {
     const newProgramExercise: ProgramExercise = {
-      id: `ex_${Date.now()}`,
+      id: Date.now(),
       program_day_id: formData.days[dayIndex].id,
       exercise_id: exercise.id,
       exercise: exercise,
@@ -353,6 +434,43 @@ export const ProgramBuilderScreen: React.FC = () => {
     );
   };
 
+  // Save program structure (days and exercises) - simplified version
+  const saveProgramStructure = async (programId: number, days: ProgramDay[]) => {
+    console.log('Saving program structure for program ID:', programId);
+    console.log('Days to save:', days);
+    
+    // TODO: For now, we'll only handle creation. In the future, add update logic.
+    // This handles the case where user adds exercises to a program.
+    
+    for (const day of days) {
+      // Always create new days for now (future: check if day.id exists to update)
+      console.log('Creating new day:', day.title);
+      const savedDay = await createProgramDay({
+        program_id: programId,
+        day_number: day.day_number,
+        notes: day.description || day.title, // Use notes field for description
+      });
+      
+      // Save exercises for this day
+      if (day.exercises && day.exercises.length > 0) {
+        console.log(`Creating ${day.exercises.length} exercises for day ${savedDay.id}`);
+        for (const exercise of day.exercises) {
+          console.log('Creating new exercise for day:', savedDay.id);
+          await createProgramExercise({
+            program_day_id: savedDay.id,
+            exercise_id: exercise.exercise_id,
+            sets: exercise.sets,
+            reps: parseInt(exercise.reps) || 0,
+            weight: exercise.weight_kg,
+            rpe: exercise.rpe,
+          });
+        }
+      }
+    }
+    
+    console.log('Program structure saved successfully');
+  };
+
   const saveProgram = async () => {
     const validationError = validateForm();
     if (validationError) {
@@ -363,25 +481,41 @@ export const ProgramBuilderScreen: React.FC = () => {
     try {
       setSaving(true);
 
-      const programData: Omit<Program, 'id' | 'created_at' | 'updated_at'> = {
+      const programData = {
         title: formData.title,
-        description: formData.description,
-        created_by: user?.id || '',
+        description: formData.description || '',
         duration_weeks: formData.duration_weeks,
         difficulty: formData.difficulty,
         is_template: false,
         goals: ['general_fitness'], // TODO: Add goal selection
-        days: formData.days,
       };
 
       let savedProgram: Program;
       
       if (isEdit && existingProgram) {
         // Update existing program
+        console.log('ProgramBuilder: Updating existing program ID:', existingProgram.id);
+        console.log('ProgramBuilder: Update data:', programData);
+        console.log('ProgramBuilder: Days to save:', formData.days);
         savedProgram = await updateProgram(existingProgram.id, programData);
+        console.log('ProgramBuilder: Update response:', savedProgram);
+        
+        // For edit: only save structure if there are days with exercises to add
+        if (formData.days && formData.days.length > 0) {
+          console.log('Saving additional days/exercises for existing program');
+          await saveProgramStructure(savedProgram.id, formData.days);
+        }
       } else {
         // Create new program
+        console.log('ProgramBuilder: Creating new program with data:', programData);
+        console.log('ProgramBuilder: Days to save:', formData.days);
         savedProgram = await createProgram(programData);
+        console.log('ProgramBuilder: Create response:', savedProgram);
+        
+        // Save program days and exercises for new program
+        if (formData.days && formData.days.length > 0) {
+          await saveProgramStructure(savedProgram.id, formData.days);
+        }
       }
 
       Alert.alert(
@@ -390,7 +524,10 @@ export const ProgramBuilderScreen: React.FC = () => {
         [
           {
             text: 'Done',
-            onPress: () => navigation.goBack(),
+            onPress: () => {
+              console.log('ProgramBuilder: User selected Done - navigating back');
+              navigation.goBack();
+            },
           },
           {
             text: 'Assign to Clients',

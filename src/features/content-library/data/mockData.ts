@@ -52,7 +52,7 @@ import type {
 export const mockExercises: Exercise[] = [
   // Bodyweight Exercises
   {
-    id: 'ex_1',
+    id: 1,
     title: 'Push-ups',
     description: 'Classic bodyweight exercise targeting chest, shoulders, and triceps. Perfect for building upper body strength.',
     instructions: '1. Start in plank position with hands shoulder-width apart\n2. Lower your chest until it nearly touches the floor\n3. Push back up to starting position\n4. Keep your body in a straight line throughout',
@@ -70,7 +70,7 @@ export const mockExercises: Exercise[] = [
     updated_at: '2024-01-15T10:00:00Z',
   },
   {
-    id: 'ex_2',
+    id: 2,
     title: 'Bodyweight Squats',
     description: 'Fundamental lower body exercise that strengthens legs and glutes while improving mobility.',
     instructions: '1. Stand with feet shoulder-width apart\n2. Lower by pushing hips back and bending knees\n3. Descend until thighs are parallel to floor\n4. Drive through heels to return to standing',
@@ -88,7 +88,7 @@ export const mockExercises: Exercise[] = [
     updated_at: '2024-01-15T10:30:00Z',
   },
   {
-    id: 'ex_3',
+    id: 3,
     title: 'Plank',
     description: 'Isometric core exercise that builds stability and strength throughout the entire torso.',
     instructions: '1. Start in forearm plank position\n2. Keep body in straight line from head to heels\n3. Engage core and breathe normally\n4. Hold for prescribed time',
@@ -107,7 +107,7 @@ export const mockExercises: Exercise[] = [
   },
   // Dumbbell Exercises
   {
-    id: 'ex_4',
+    id: 4,
     title: 'Dumbbell Chest Press',
     description: 'Effective chest-building exercise using dumbbells for a full range of motion.',
     instructions: '1. Lie on bench with dumbbells at chest level\n2. Press weights up and slightly together\n3. Lower with control to starting position\n4. Keep shoulder blades retracted',
@@ -125,7 +125,7 @@ export const mockExercises: Exercise[] = [
     updated_at: '2024-01-15T11:30:00Z',
   },
   {
-    id: 'ex_5',
+    id: 5,
     title: 'Dumbbell Rows',
     description: 'Unilateral back exercise that improves strength and corrects muscle imbalances.',
     instructions: '1. Place one knee and hand on bench\n2. Hold dumbbell in opposite hand\n3. Pull weight to ribcage\n4. Lower with control',
@@ -143,7 +143,7 @@ export const mockExercises: Exercise[] = [
   },
   // Cardio Exercises
   {
-    id: 'ex_6',
+    id: 6,
     title: 'Walking in Place',
     description: 'Low-impact cardio exercise perfect for seniors or those with mobility limitations.',
     instructions: '1. Stand with good posture\n2. Lift knees alternately\n3. Swing arms naturally\n4. Maintain steady rhythm',
@@ -162,7 +162,7 @@ export const mockExercises: Exercise[] = [
   },
   // Custom Trainer Exercise
   {
-    id: 'ex_7',
+    id: 7,
     title: 'Modified Yoga Flow',
     description: 'Gentle yoga sequence designed specifically for senior clients to improve flexibility.',
     instructions: '1. Start in seated position\n2. Gentle neck rolls\n3. Shoulder blade squeezes\n4. Seated spinal twist',
@@ -185,7 +185,7 @@ export const mockExercises: Exercise[] = [
 
 export const mockPrograms: Program[] = [
   {
-    id: 'prog_1',
+    id: 1,
     title: 'Beginner Full Body Strength',
     description: 'A comprehensive 4-week program designed for seniors new to strength training. Focuses on functional movements and building confidence.',
     created_by: 'trainer_1',
@@ -199,7 +199,7 @@ export const mockPrograms: Program[] = [
     estimated_duration: 30,
   },
   {
-    id: 'prog_2', 
+    id: 2, 
     title: 'Senior Mobility & Balance',
     description: 'Gentle 6-week program focusing on improving flexibility, balance, and daily movement quality.',
     created_by: 'trainer_1',
@@ -217,8 +217,8 @@ export const mockPrograms: Program[] = [
 export const mockProgramDays: ProgramDay[] = [
   // Program 1 Days
   {
-    id: 'day_1',
-    program_id: 'prog_1',
+    id: 1,
+    program_id: 1,
     day_number: 1,
     title: 'Upper Body Foundation',
     description: 'Introduction to upper body movements with focus on form and control.',
@@ -228,8 +228,8 @@ export const mockProgramDays: ProgramDay[] = [
     estimated_duration: 30,
   },
   {
-    id: 'day_2',
-    program_id: 'prog_1',
+    id: 2,
+    program_id: 1,
     day_number: 2,
     title: 'Lower Body Basics',
     description: 'Building leg strength and stability with bodyweight movements.',
@@ -239,8 +239,8 @@ export const mockProgramDays: ProgramDay[] = [
     estimated_duration: 30,
   },
   {
-    id: 'day_3',
-    program_id: 'prog_1',
+    id: 3,
+    program_id: 1,
     day_number: 3,
     title: 'Active Recovery',
     description: 'Gentle movement and stretching to promote recovery.',
@@ -254,9 +254,9 @@ export const mockProgramDays: ProgramDay[] = [
 export const mockProgramExercises: ProgramExercise[] = [
   // Day 1 Exercises
   {
-    id: 'pex_1',
-    program_day_id: 'day_1',
-    exercise_id: 'ex_1', // Push-ups
+    id: 1,
+    program_day_id: 1,
+    exercise_id: 1, // Push-ups
     order_index: 1,
     sets: 3,
     reps: '5-8',
@@ -267,9 +267,9 @@ export const mockProgramExercises: ProgramExercise[] = [
     created_at: '2024-01-10T00:00:00Z',
   },
   {
-    id: 'pex_2',
-    program_day_id: 'day_1',
-    exercise_id: 'ex_3', // Plank
+    id: 2,
+    program_day_id: 1,
+    exercise_id: 3, // Plank
     order_index: 2,
     sets: 3,
     reps: '20-30 seconds',
@@ -281,9 +281,9 @@ export const mockProgramExercises: ProgramExercise[] = [
   },
   // Day 2 Exercises
   {
-    id: 'pex_3',
-    program_day_id: 'day_2',
-    exercise_id: 'ex_2', // Squats
+    id: 3,
+    program_day_id: 2,
+    exercise_id: 2, // Squats
     order_index: 1,
     sets: 3,
     reps: '8-12',
@@ -468,7 +468,7 @@ export const getExercises = async (filters?: ExerciseFilters): Promise<ExerciseL
 };
 
 // TODO: Replace with: supabase.from('content_library').select('*').eq('id', id).single()
-export const getExerciseById = async (id: string): Promise<Exercise | null> => {
+export const getExerciseById = async (id: number): Promise<Exercise | null> => {
   return mockExercises.find(ex => ex.id === id) || null;
 };
 
@@ -519,7 +519,7 @@ export const getPrograms = async (filters?: ProgramFilters): Promise<ProgramList
 };
 
 // TODO: Replace with: supabase.from('programs').select('*, days:program_days(*, exercises:program_exercises(*, exercise:content_library(*)))').eq('id', id).single()
-export const getProgramById = async (id: string): Promise<Program | null> => {
+export const getProgramById = async (id: number): Promise<Program | null> => {
   const program = mockPrograms.find(p => p.id === id);
   if (!program) return null;
   
@@ -644,7 +644,7 @@ export const createExercise = async (exerciseData: Omit<Exercise, 'id' | 'create
 };
 
 // TODO: Replace with: supabase.from('content_library').update(updates).eq('id', id).select().single()
-export const updateExercise = async (id: string, updates: Partial<Exercise>): Promise<Exercise | null> => {
+export const updateExercise = async (id: number, updates: Partial<Exercise>): Promise<Exercise | null> => {
   const index = mockExercises.findIndex(ex => ex.id === id);
   if (index === -1) return null;
   
@@ -658,7 +658,7 @@ export const updateExercise = async (id: string, updates: Partial<Exercise>): Pr
 };
 
 // TODO: Replace with: supabase.from('content_library').delete().eq('id', id)
-export const deleteExercise = async (id: string): Promise<boolean> => {
+export const deleteExercise = async (id: number): Promise<boolean> => {
   const index = mockExercises.findIndex(ex => ex.id === id);
   if (index === -1) return false;
   
@@ -686,7 +686,7 @@ export const createProgram = async (program: Omit<Program, 'id' | 'created_at' |
 
 // Update existing program
 // TODO: Replace with Supabase transaction (programs + program_days + program_exercises)
-export const updateProgram = async (id: string, updates: Partial<Omit<Program, 'id' | 'created_at'>>): Promise<Program> => {
+export const updateProgram = async (id: number, updates: Partial<Omit<Program, 'id' | 'created_at'>>): Promise<Program> => {
   await new Promise(resolve => setTimeout(resolve, 600));
 
   const index = mockPrograms.findIndex(p => p.id === id);
@@ -707,7 +707,7 @@ export const updateProgram = async (id: string, updates: Partial<Omit<Program, '
 
 // Delete program
 // TODO: Replace with Supabase cascade delete (programs + program_days + program_exercises)
-export const deleteProgram = async (id: string): Promise<boolean> => {
+export const deleteProgram = async (id: number): Promise<boolean> => {
   await new Promise(resolve => setTimeout(resolve, 400));
 
   console.log('DELETE PROGRAM FUNCTION CALLED with ID:', id);

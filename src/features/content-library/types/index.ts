@@ -44,7 +44,7 @@ export type EquipmentType =
 // ===================================
 
 export interface Exercise {
-  id: string;
+  id: number; // SERIAL in database = number in TypeScript
   title: string;
   description: string;
   instructions: string;
@@ -72,9 +72,9 @@ export interface Exercise {
 // ===================================
 
 export interface Program {
-  id: string;
+  id: number; // SERIAL in database = number in TypeScript
   title: string;
-  description: string;
+  description?: string;
   created_by: string; // Trainer who created the program
   org_id?: string;
   is_template: boolean; // Template vs assigned program
@@ -91,8 +91,8 @@ export interface Program {
 }
 
 export interface ProgramDay {
-  id: string;
-  program_id: string;
+  id: number; // SERIAL in database = number in TypeScript
+  program_id: number; // References programs.id (SERIAL)
   day_number: number;
   title: string; // e.g., "Push Day", "Leg Day", "Rest Day"
   description?: string;
@@ -106,9 +106,9 @@ export interface ProgramDay {
 }
 
 export interface ProgramExercise {
-  id: string;
-  program_day_id: string;
-  exercise_id: string;
+  id: number; // SERIAL in database = number in TypeScript
+  program_day_id: number; // References program_days.id (SERIAL)
+  exercise_id: number; // References content_library.id (SERIAL)
   order_index: number; // Order within the day
   sets: number;
   reps: string; // e.g., "8-12", "AMRAP", "30 seconds"
@@ -129,9 +129,9 @@ export interface ProgramExercise {
 // ===================================
 
 export interface ClientProgram {
-  id: string;
-  client_id: string;
-  program_id: string;
+  id: number; // SERIAL in database = number in TypeScript
+  client_id: string; // UUID reference to users table
+  program_id: number; // References programs.id (SERIAL)
   assigned_by: string; // Trainer who assigned the program
   assigned_at: string;
   start_date: string;
@@ -147,9 +147,9 @@ export interface ClientProgram {
 }
 
 export interface ExerciseLog {
-  id: string;
-  client_id: string;
-  program_exercise_id: string;
+  id: number; // SERIAL in database = number in TypeScript
+  client_id: string; // UUID reference to users table
+  program_exercise_id: number; // References program_exercises.id (SERIAL)
   completed_at: string;
   actual_sets: number;
   actual_reps: string;

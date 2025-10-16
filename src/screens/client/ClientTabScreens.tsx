@@ -1,10 +1,10 @@
 import React from 'react';
 import { PlaceholderScreen } from '../../components/PlaceholderScreen';
-import { ClientProgramViewScreen } from '../../features/content-library/screens';
+import { ClientProgramScreen } from './ClientProgramScreen';
 
 export const ProgramsScreen: React.FC = () => {
-  // Use the actual client program view screen instead of placeholder
-  return <ClientProgramViewScreen navigation={{} as any} />;
+  // Use the new client program screen for assigned workout programs
+  return <ClientProgramScreen />;
 };
 
 export const ProgressScreen: React.FC = () => {

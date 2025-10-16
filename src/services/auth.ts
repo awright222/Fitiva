@@ -7,14 +7,14 @@ export class AuthService {
    */
   static async signUp(data: SignUpData) {
     try {
-      const { email, password, name, role, ...additionalData } = data;
+      const { email, password, full_name, role, ...additionalData } = data;
       
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name,
+            full_name,
             role,
             ...additionalData,
           },
@@ -113,8 +113,8 @@ export class AuthService {
       }
 
       const { data, error } = await supabase
-        .from('users')
-        .select('id, name, email, role, created_at, updated_at, date_of_birth, gender, height_cm, weight_kg, location, preferred_language')
+        .from('profiles')
+        .select('id, full_name, email, role, created_at, updated_at, date_of_birth, phone_number, emergency_contact_name, emergency_contact_phone, medical_notes')
         .eq('id', currentUser)
         .single();
 
@@ -132,7 +132,7 @@ export class AuthService {
         try {
           const newUserData = {
             id: authUser.id,
-            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+            full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
             email: authUser.email || '',
             role: authUser.user_metadata?.role || 'trainer',
             created_at: authUser.created_at || new Date().toISOString(),
@@ -140,7 +140,7 @@ export class AuthService {
           };
 
           const { data: createdUser, error: createError } = await supabase
-            .from('users')
+            .from('profiles')
             .insert(newUserData)
             .select()
             .single();
@@ -155,14 +155,14 @@ export class AuthService {
         // If database insert fails, return auth metadata as fallback
         return {
           id: authUser.id,
-          name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+          full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
           email: authUser.email || '',
           role: authUser.user_metadata?.role || 'trainer',
           created_at: authUser.created_at || new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          phone_number: null,
           date_of_birth: null,
-          gender: null,
-          height_cm: null,
+          emergency_contact_name: null,
           weight_kg: null,
           location: null,
           preferred_language: null,
@@ -196,7 +196,7 @@ export class AuthService {
       }
 
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .update(updates)
         .eq('id', currentUser.id)
         .select()

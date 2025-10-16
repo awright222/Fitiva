@@ -100,7 +100,7 @@ const typography = {
 export const ClientProgramViewScreen: React.FC<ClientProgramViewScreenProps> = ({ navigation, route }) => {
   const { user } = useAuth();
   const [programs, setPrograms] = useState<ClientProgram[]>([]);
-  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+  const [selectedProgram, setSelectedProgram] = useState<ClientProgram | null>(null);
   const [selectedDay, setSelectedDay] = useState<ProgramDay | null>(null);
   const [loading, setLoading] = useState(true);
   const [completingExercise, setCompletingExercise] = useState<string | null>(null);
@@ -113,11 +113,11 @@ export const ClientProgramViewScreen: React.FC<ClientProgramViewScreenProps> = (
   useEffect(() => {
     // If programId is provided in route params, select that program
     if (route?.params?.programId && programs.length > 0) {
-      const program = programs.find(p => p.program?.id === route.params.programId)?.program;
-      if (program) {
-        setSelectedProgram(program);
-        if (program.days && program.days.length > 0) {
-          setSelectedDay(program.days[0]);
+      const clientProgram = programs.find(p => p.program?.id === route.params!.programId);
+      if (clientProgram && clientProgram.program) {
+        setSelectedProgram(clientProgram);
+        if (clientProgram.program.days && clientProgram.program.days.length > 0) {
+          setSelectedDay(clientProgram.program.days[0]);
         }
       }
     }
@@ -455,7 +455,7 @@ export const ClientProgramViewScreen: React.FC<ClientProgramViewScreenProps> = (
                 title={item.program?.name || 'Program'}
                 subtitle={`${item.program?.difficulty_level} • ${item.program?.duration_weeks} weeks`}
                 description={item.program?.description}
-                onPress={() => setSelectedProgram(item.program!)}
+                onPress={() => setSelectedProgram(item)}
                 style={styles.programCard}
               />
             )}
@@ -463,11 +463,7 @@ export const ClientProgramViewScreen: React.FC<ClientProgramViewScreenProps> = (
         )}
       </SafeAreaView>
     );
-  }
-  const { user } = useAuth();
-  const [programs, setPrograms] = useState<ClientProgram[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedProgram, setSelectedProgram] = useState<ClientProgram | null>(null);
+  };
 
   useEffect(() => {
     loadPrograms();

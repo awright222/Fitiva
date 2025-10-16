@@ -12,7 +12,7 @@ interface TrainerHomeScreenProps {
 }
 
 export const TrainerHomeScreen: React.FC<TrainerHomeScreenProps> = ({ navigation }) => {
-  const { signOut } = useAuth();
+  const { signOut, userProfile } = useAuth();
   const { profile, clients, todaySessions, recentMessages, earnings } = mockTrainerData;
 
   const handleClientManagement = () => {
@@ -54,7 +54,7 @@ export const TrainerHomeScreen: React.FC<TrainerHomeScreenProps> = ({ navigation
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Welcome Header */}
         <View style={styles.header}>
-          <Text style={styles.welcomeText}>Welcome back, {profile.name}!</Text>
+          <Text style={styles.welcomeText}>Welcome back, {userProfile?.full_name || 'Trainer'}!</Text>
           <Text style={styles.subtitleText}>
             {profile.specialties.join(' • ')} • {profile.totalClients} Active Clients
           </Text>
