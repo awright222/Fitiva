@@ -2,8 +2,9 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { ClientHomeScreen } from '../screens/client/ClientHomeScreen';
-import { ProgramsScreen, MessagesScreen, ProfileScreen } from '../screens/client/ClientTabScreens';
+import { ProgramsScreen, ProfileScreen } from '../screens/client/ClientTabScreens';
 import { ClientScheduleNavigator } from './ClientScheduleNavigator';
+import { ClientMessagingNavigator } from './ClientMessagingNavigator';
 import { ClientTabParamList } from './types';
 import { COLORS } from '../constants';
 
@@ -70,8 +71,8 @@ export const ClientTabNavigator: React.FC = () => {
       />
       <Tab.Screen 
         name="Messages" 
-        component={MessagesScreen}
-        options={{ title: 'Messages' }}
+        component={ClientMessagingNavigator}
+        options={{ title: 'Messages', headerShown: false }}
       />
       <Tab.Screen 
         name="Profile" 

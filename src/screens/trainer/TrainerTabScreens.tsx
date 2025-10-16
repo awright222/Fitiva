@@ -1,5 +1,6 @@
 import React from 'react';
 import { PlaceholderScreen } from '../../components/PlaceholderScreen';
+import { TrainerContentLibraryScreen } from '../../features/content-library/screens';
 
 export const ClientsScreen: React.FC = () => {
   return (
@@ -17,20 +18,25 @@ export const ClientsScreen: React.FC = () => {
   );
 };
 
-export const ProgramsScreen: React.FC = () => {
+export const HomeScreen: React.FC = () => {
   return (
     <PlaceholderScreen
-      title="Programs"
-      subtitle="Create and manage fitness programs"
+      title="Trainer Dashboard"
+      subtitle="Manage your clients and programs"
       features={[
-        'Program templates',
-        'Exercise library',
-        'Custom workout builder',
-        'Program sharing',
-        'Progress tracking tools',
+        'Client overview',
+        'Recent activity',
+        'Quick actions',
+        'Program assignments',
+        'Schedule summary',
       ]}
     />
   );
+};
+
+export const ProgramsScreen: React.FC = () => {
+  // Use the actual content library screen instead of placeholder
+  return <TrainerContentLibraryScreen navigation={{} as any} />;
 };
 
 export const ScheduleScreen: React.FC = () => {

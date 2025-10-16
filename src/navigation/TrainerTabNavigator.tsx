@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TrainerHomeScreen } from '../screens/trainer/TrainerHomeScreen';
 import { ClientsScreen, ProgramsScreen, ProfileScreen } from '../screens/trainer/TrainerTabScreens';
 import { TrainerScheduleNavigator } from './TrainerScheduleNavigator';
+import { TrainerMessagingNavigator } from './TrainerMessagingNavigator';
 import { TrainerTabParamList } from './types';
 import { COLORS } from '../constants';
 
@@ -28,6 +29,9 @@ export const TrainerTabNavigator: React.FC = () => {
               break;
             case 'Schedule':
               iconName = focused ? 'calendar' : 'calendar-outline';
+              break;
+            case 'Messages':
+              iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
               break;
             case 'Profile':
               iconName = focused ? 'person' : 'person-outline';
@@ -72,6 +76,11 @@ export const TrainerTabNavigator: React.FC = () => {
         name="Schedule" 
         component={TrainerScheduleNavigator}
         options={{ title: 'Schedule', headerShown: false }}
+      />
+      <Tab.Screen 
+        name="Messages" 
+        component={TrainerMessagingNavigator}
+        options={{ title: 'Messages', headerShown: false }}
       />
       <Tab.Screen 
         name="Profile" 

@@ -1,20 +1,10 @@
 import React from 'react';
 import { PlaceholderScreen } from '../../components/PlaceholderScreen';
+import { ClientProgramViewScreen } from '../../features/content-library/screens';
 
 export const ProgramsScreen: React.FC = () => {
-  return (
-    <PlaceholderScreen
-      title="My Programs"
-      subtitle="View and track your fitness programs"
-      features={[
-        'Current active programs',
-        'Program progress tracking',
-        'Exercise library',
-        'Workout history',
-        'Goal setting',
-      ]}
-    />
-  );
+  // Use the actual client program view screen instead of placeholder
+  return <ClientProgramViewScreen navigation={{} as any} />;
 };
 
 export const ProgressScreen: React.FC = () => {

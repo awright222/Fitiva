@@ -32,8 +32,8 @@ export const TrainerHomeScreen: React.FC<TrainerHomeScreenProps> = ({ navigation
   };
 
   const handleMessaging = () => {
-    // TODO: Navigate to messaging
-    console.log('Navigate to messaging');
+    // Navigate to Messages tab
+    navigation.navigate('Messages');
   };
 
   const handleEarnings = () => {

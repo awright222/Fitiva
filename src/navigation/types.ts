@@ -29,6 +29,7 @@ export type TrainerTabParamList = {
   Clients: undefined;
   Programs: undefined;
   Schedule: undefined;
+  Messages: undefined;
   Profile: undefined;
 };
 

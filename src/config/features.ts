@@ -3,6 +3,12 @@ export const FEATURES = {
   SCHEDULING_ENABLED: true,
   SESSION_BOOKING: true,
   
+  // Content Library & Programs (MVP Phase 2)
+  CONTENT_LIBRARY_ENABLED: true, // Exercise library and program builder
+  PROGRAM_BUILDER_ENABLED: true, // Trainer program creation
+  EXERCISE_UPLOADS_ENABLED: true, // Image/video uploads for exercises
+  AI_SUGGESTIONS_ENABLED: false, // Smart exercise suggestions (future)
+  
   // Payment & subscription features (Post-MVP) 
   PAYMENTS_ENABLED: false,
   SUBSCRIPTION_MANAGEMENT: false,
@@ -22,7 +28,7 @@ export const FEATURES = {
   ADVANCED_REPORTING: false,
   
   // Organization & white-label (Future)
-  WHITE_LABEL_ENABLED: false, 
+  WHITE_LABEL_ENABLED: false, // Organization-level content sharing
   ORGANIZATION_MANAGEMENT: false,
 }; 
 

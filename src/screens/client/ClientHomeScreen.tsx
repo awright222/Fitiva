@@ -41,8 +41,8 @@ export const ClientHomeScreen: React.FC<ClientHomeScreenProps> = ({ navigation }
   };
 
   const handleViewMessages = () => {
-    // TODO: Navigate to messages
-    console.log('View messages pressed');
+    // Navigate to Messages tab
+    navigation.navigate('Messages');
   };
 
   const handleTrackProgress = () => {
