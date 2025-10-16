@@ -43,6 +43,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 import { ExerciseCard, ExerciseFilter } from '../components';
@@ -51,11 +52,10 @@ import { useAuth } from '../../../context/AuthContext';
 import { FEATURES } from '../../../config/features';
 import type { Exercise, ExerciseFilters } from '../types';
 import { getExercises, deleteExercise } from '../data/mockData';
+import { TrainerProgramsStackParamList } from '../../../navigation/types';
 
 // TODO: Import proper navigation types
-type TrainerContentLibraryScreenProps = {
-  navigation: StackNavigationProp<any>;
-};
+type TrainerContentLibraryScreenNavigationProp = StackNavigationProp<TrainerProgramsStackParamList, 'ContentLibrary'>;
 
 // Colors optimized for seniors
 const colors = {
@@ -84,7 +84,8 @@ const typography = {
   },
 } as const;
 
-export const TrainerContentLibraryScreen: React.FC<TrainerContentLibraryScreenProps> = ({ navigation }) => {
+export const TrainerContentLibraryScreen: React.FC = () => {
+  const navigation = useNavigation<TrainerContentLibraryScreenNavigationProp>();
   const { user } = useAuth();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
@@ -314,17 +315,7 @@ export const TrainerContentLibraryScreen: React.FC<TrainerContentLibraryScreenPr
         <TouchableOpacity 
           style={styles.programsButton}
           onPress={() => {
-            Alert.alert(
-              'Program Builder',
-              'Ready to build a custom workout program?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Create Program', onPress: () => {
-                  // TODO: navigation.navigate('ProgramBuilder', { mode: 'create' });
-                  console.log('Navigate to Program Builder');
-                }}
-              ]
-            );
+            navigation.navigate('ProgramBuilder', { mode: 'create' });
           }}
         >
           <Ionicons name="fitness" size={24} color={colors.white} />

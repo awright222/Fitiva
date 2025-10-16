@@ -1,6 +1,5 @@
 import React from 'react';
 import { PlaceholderScreen } from '../../components/PlaceholderScreen';
-import { TrainerContentLibraryScreen } from '../../features/content-library/screens';
 
 export const ClientsScreen: React.FC = () => {
   return (
@@ -32,11 +31,6 @@ export const HomeScreen: React.FC = () => {
       ]}
     />
   );
-};
-
-export const ProgramsScreen: React.FC = () => {
-  // Use the actual content library screen instead of placeholder
-  return <TrainerContentLibraryScreen navigation={{} as any} />;
 };
 
 export const ScheduleScreen: React.FC = () => {

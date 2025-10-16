@@ -33,6 +33,14 @@ export type TrainerTabParamList = {
   Profile: undefined;
 };
 
+export type TrainerProgramsStackParamList = {
+  ContentLibrary: undefined;
+  ProgramBuilder: {
+    mode: 'create' | 'edit';
+    program?: any; // Program type from content library
+  };
+};
+
 export type OrgTabParamList = {
   OrgHome: undefined;
   Trainers: undefined;

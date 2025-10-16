@@ -47,7 +47,8 @@ import {
   TextStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { StackNavigationProp, StackScreenProps } from '@react-navigation/stack';
 
 import { SectionHeader, Button, InputField } from '../../../components/ui';
 import { ExerciseCard, ExerciseFilter } from '../components';
@@ -55,16 +56,10 @@ import { useAuth } from '../../../context/AuthContext';
 import { FEATURES } from '../../../config/features';
 import type { Exercise, Program, ProgramDay, ProgramExercise, ExerciseFilters } from '../types';
 import { getExercises, createProgram } from '../data/mockData';
+import { TrainerProgramsStackParamList } from '../../../navigation/types';
 
-type ProgramBuilderScreenProps = {
-  navigation: StackNavigationProp<any>;
-  route?: {
-    params?: {
-      program?: Program;
-      mode?: 'create' | 'edit';
-    };
-  };
-};
+type ProgramBuilderScreenNavigationProp = StackNavigationProp<TrainerProgramsStackParamList, 'ProgramBuilder'>;
+type ProgramBuilderScreenRouteProp = StackScreenProps<TrainerProgramsStackParamList, 'ProgramBuilder'>['route'];
 
 // Colors optimized for seniors
 const colors = {
@@ -113,10 +108,13 @@ type ProgramFormData = {
   days: ProgramDay[];
 };
 
-export const ProgramBuilderScreen: React.FC<ProgramBuilderScreenProps> = ({ navigation, route }) => {
+export const ProgramBuilderScreen: React.FC = () => {
+  const navigation = useNavigation<ProgramBuilderScreenNavigationProp>();
+  const route = useRoute<ProgramBuilderScreenRouteProp>();
   const { user } = useAuth();
-  const isEdit = route?.params?.mode === 'edit';
-  const existingProgram = route?.params?.program;
+  
+  const isEdit = route.params?.mode === 'edit';
+  const existingProgram = route.params?.program;
 
   // Form state
   const [formData, setFormData] = useState<ProgramFormData>({
