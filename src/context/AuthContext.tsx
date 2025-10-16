@@ -118,16 +118,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const targetUserId = userId || user?.id;
     if (targetUserId) {
       try {
-        console.log('RefreshProfile: Fetching profile for user:', targetUserId);
         const profile = await AuthService.getUserProfile(targetUserId);
-        console.log('RefreshProfile: Profile fetched:', profile);
-        setUserProfile(profile);
-        await storeUserProfile(profile);
+        setUser(profile);
+        setIsLoading(false);
       } catch (error: any) {
         console.error('Error refreshing profile:', error);
+        
+        // For timeout or other errors, create a basic fallback profile
+        if (error?.message?.includes('timeout') || error?.message?.includes('Query timeout')) {
+          const currentUser = await AuthService.getCurrentUser();
+          if (currentUser) {
+            const fallbackProfile = {
+              id: currentUser.id,
+              name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'User',
+              email: currentUser.email || '',
+              role: currentUser.user_metadata?.role || 'trainer',
+              created_at: currentUser.created_at || new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            setUserProfile(fallbackProfile);
+            await storeUserProfile(fallbackProfile);
+            return;
+          }
+        }
+        
         // If user is authenticated but profile doesn't exist, sign them out
         if (error?.message?.includes('0 rows') || error?.code === 'PGRST116') {
-          console.log('User authenticated but no profile found - signing out to allow fresh signup');
           await signOut();
           return;
         } else {
@@ -137,7 +153,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await storeUserProfile(null);
       }
     } else {
-      console.log('RefreshProfile: No user ID provided and no user in state');
+      // No user ID provided and no user in state
     }
   };
 
@@ -239,7 +255,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setSession(currentSession);
           setUser(currentSession.user);
           await storeSession(currentSession);
-          await refreshProfile(currentSession.user.id);
+          
+          // Add timeout wrapper for the entire profile refresh
+          const profileRefreshPromise = refreshProfile(currentSession.user.id);
+          const maxWaitPromise = new Promise<void>((resolve) => 
+            setTimeout(() => {
+              resolve();
+            }, 10000)
+          );
+          
+          await Promise.race([profileRefreshPromise, maxWaitPromise]);
         } else if (mounted) {
           // Clear everything if no valid session
           setUser(null);
@@ -269,13 +294,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('Auth event:', event);
-        
         if (event === 'SIGNED_IN' && session?.user) {
           setSession(session);
           setUser(session.user);
           await storeSession(session);
-          await refreshProfile(session.user.id);
+          
+          // Add timeout protection for auth state change profile refresh
+          const profileRefreshPromise = refreshProfile(session.user.id);
+          const maxWaitPromise = new Promise<void>((resolve) => 
+            setTimeout(() => {
+              resolve();
+            }, 8000)
+          );
+          
+          await Promise.race([profileRefreshPromise, maxWaitPromise]);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setUserProfile(null);

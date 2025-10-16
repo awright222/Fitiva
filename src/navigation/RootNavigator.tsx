@@ -20,6 +20,20 @@ const LoadingScreen = () => (
 
 export const RootNavigator: React.FC = () => {
   const { user, isLoading, userProfile } = useAuth();
+  const [profileTimeout, setProfileTimeout] = React.useState(false);
+
+  // Add timeout for profile loading
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (user && !userProfile && !isLoading) {
+      timer = setTimeout(() => {
+        setProfileTimeout(true);
+      }, 3000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [user, userProfile, isLoading]);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -31,9 +45,8 @@ export const RootNavigator: React.FC = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
         <Stack.Screen name="Auth" component={AuthNavigator} />
-      ) : !userProfile ? (
-        // If user is authenticated but has no profile, something is wrong
-        // For now show loading, but in production we might want to sign them out
+      ) : !userProfile && !profileTimeout ? (
+        // If user is authenticated but has no profile, show loading briefly
         <Stack.Screen 
           name="ProfileLoading" 
           component={LoadingScreen} 
@@ -44,7 +57,7 @@ export const RootNavigator: React.FC = () => {
           {userRole === 'client' && (
             <Stack.Screen name="ClientTabs" component={ClientTabNavigator} />
           )}
-          {userRole === 'trainer' && (
+          {(userRole === 'trainer' || profileTimeout) && (
             <Stack.Screen name="TrainerTabs" component={TrainerTabNavigator} />
           )}
           {userRole === 'org_manager' && (

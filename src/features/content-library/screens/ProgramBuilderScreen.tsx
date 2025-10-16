@@ -43,6 +43,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  Platform,
   ViewStyle,
   TextStyle,
 } from 'react-native';
@@ -597,11 +598,17 @@ const styles = StyleSheet.create({
     padding: 16,
     margin: 16,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    // Cross-platform shadow/box-shadow
+    ...(Platform.OS === 'web' 
+      ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
+      : {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 2,
+        }
+    ),
   } as ViewStyle,
 
   inlineInputs: {
@@ -690,11 +697,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    // Cross-platform shadow/box-shadow
+    ...(Platform.OS === 'web' 
+      ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
+      : {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 2,
+        }
+    ),
   } as ViewStyle,
 
   dayHeader: {
@@ -734,7 +747,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: colors.gray[50],
     minHeight: 60,
-    textAlignVertical: 'top',
+    // Use verticalAlign for web compatibility
+    ...(Platform.OS === 'web' 
+      ? { verticalAlign: 'top' }
+      : { textAlignVertical: 'top' }
+    ),
   } as TextStyle,
 
   exercisesContainer: {

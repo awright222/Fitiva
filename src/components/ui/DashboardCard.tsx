@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 
 interface DashboardCardProps {
   title: string;
@@ -61,14 +61,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    // Cross-platform shadow/box-shadow
+    ...(Platform.OS === 'web' 
+      ? { boxShadow: '0px 2px 3.84px rgba(0, 0, 0, 0.1)' }
+      : {
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 3.84,
+          elevation: 5,
+        }
+    ),
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },

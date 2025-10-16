@@ -107,35 +107,69 @@ export class AuthService {
    */
   static async getUserProfile(userId?: string) {
     try {
-      console.log('AuthService.getUserProfile: Called with userId:', userId);
       const currentUser = userId || (await this.getCurrentUser())?.id;
-      console.log('AuthService.getUserProfile: Using currentUser:', currentUser);
       if (!currentUser) {
         throw new Error('No authenticated user found');
       }
 
-      console.log('AuthService.getUserProfile: Querying users table...');
-      
-      // Add a timeout to prevent hanging
-      const queryPromise = supabase
+      const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, name, email, role, created_at, updated_at, date_of_birth, gender, height_cm, weight_kg, location, preferred_language')
         .eq('id', currentUser)
         .single();
-        
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
-      );
-      
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       if (error) {
-        console.error('AuthService.getUserProfile: Supabase error:', error);
-        throw error;
+        // If user profile doesn't exist, we'll create it in the fallback
+      } else {
+        return data;
       }
+      
+      // Fallback: Use current auth user data and create profile if needed
+      const authUser = await this.getCurrentUser();
+      
+      if (authUser) {
+        // Try to create the missing user record in the database
+        try {
+          const newUserData = {
+            id: authUser.id,
+            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+            email: authUser.email || '',
+            role: authUser.user_metadata?.role || 'trainer',
+            created_at: authUser.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
 
-      console.log('AuthService.getUserProfile: Profile data:', data);
-      return data;
+          const { data: createdUser, error: createError } = await supabase
+            .from('users')
+            .insert(newUserData)
+            .select()
+            .single();
+
+          if (!createError && createdUser) {
+            return createdUser;
+          }
+        } catch (insertError) {
+          // Continue to fallback
+        }
+
+        // If database insert fails, return auth metadata as fallback
+        return {
+          id: authUser.id,
+          name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+          email: authUser.email || '',
+          role: authUser.user_metadata?.role || 'trainer',
+          created_at: authUser.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          date_of_birth: null,
+          gender: null,
+          height_cm: null,
+          weight_kg: null,
+          location: null,
+          preferred_language: null,
+        };
+      } else {
+        throw new Error('No user data available');
+      }
     } catch (error) {
       console.error('Get user profile error:', error);
       throw error;

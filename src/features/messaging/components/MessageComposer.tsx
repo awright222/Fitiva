@@ -15,6 +15,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Platform,
   ViewStyle,
   TextStyle,
 } from 'react-native';
@@ -119,7 +120,11 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.gray[900],
     flex: 1,
-    textAlignVertical: 'center',
+    // Use verticalAlign for web compatibility
+    ...(Platform.OS === 'web' 
+      ? { verticalAlign: 'middle' }
+      : { textAlignVertical: 'center' }
+    ),
   } as TextStyle,
   
   sendButton: {

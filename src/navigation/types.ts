@@ -7,13 +7,13 @@ export type AuthStackParamList = {
   SignUp: undefined;
   ForgotPassword: undefined;
   RoleSelection: {
-    signUpData: {
+    signUpData?: {
       email: string;
       password: string;
       name: string;
       date_of_birth?: string;
     };
-  };
+  } | undefined;
 };
 
 export type ClientTabParamList = {

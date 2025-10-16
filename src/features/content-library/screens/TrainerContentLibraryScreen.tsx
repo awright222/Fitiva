@@ -10,7 +10,15 @@
  * - Large, accessible design for seniors
  * 
  * TODO: SUPABASE INTEGRATION POINTS
- * ================================
+ * =============        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => setShowPrograms(!showPrograms)}
+        >
+          <Ionicons name="eye" size={20} color={colors.primary} />
+          <Text style={styles.actionButtonText}>
+            {showPrograms ? 'Hide Programs' : 'View Programs'}
+          </Text>
+        </TouchableOpacity>============
  * 
  * 1. Exercise Loading:
  *    - Replace with: supabase.from('content_library').select('*').or('is_global.eq.true,created_by.eq.${userId}')
@@ -39,6 +47,8 @@ import {
   SafeAreaView,
   Alert,
   Modal,
+  ActivityIndicator,
+  Platform,
   ViewStyle,
   TextStyle,
 } from 'react-native';
@@ -50,8 +60,8 @@ import { ExerciseCard, ExerciseFilter } from '../components';
 import { SectionHeader, Button } from '../../../components/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { FEATURES } from '../../../config/features';
-import type { Exercise, ExerciseFilters } from '../types';
-import { getExercises, deleteExercise } from '../data/mockData';
+import type { Exercise, ExerciseFilters, Program } from '../types';
+import { getExercises, deleteExercise, getPrograms } from '../data/mockData';
 import { TrainerProgramsStackParamList } from '../../../navigation/types';
 
 // TODO: Import proper navigation types
@@ -65,6 +75,7 @@ const colors = {
     50: '#f9fafb',
     100: '#f3f4f6',
     200: '#e5e7eb',
+    400: '#9ca3af',
     600: '#4b5563',
     900: '#111827',
   },
@@ -88,21 +99,38 @@ export const TrainerContentLibraryScreen: React.FC = () => {
   const navigation = useNavigation<TrainerContentLibraryScreenNavigationProp>();
   const { user } = useAuth();
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
+  const [programsLoading, setProgramsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState<ExerciseFilters>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [showPrograms, setShowPrograms] = useState(false);
 
-  // Load exercises when component mounts or filters change
+  // Load data when component mounts or filters change
   useEffect(() => {
-    loadExercises();
+    loadData();
   }, [filters, user?.id]);
+
+  // Focus listener to refresh when returning from ProgramBuilder
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('Screen focused - refreshing programs...');
+      loadPrograms();
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  // Auto-show programs section if programs exist
+  useEffect(() => {
+    if (programs.length > 0 && !showPrograms) {
+      setShowPrograms(true);
+    }
+  }, [programs.length]);
 
   // TODO: Replace with Supabase query
   const loadExercises = async () => {
     try {
-      setLoading(true);
-      
       // TODO: When implementing Supabase:
       // const { data, error } = await supabase
       //   .from('content_library')
@@ -120,6 +148,41 @@ export const TrainerContentLibraryScreen: React.FC = () => {
         'Unable to load exercise library. Please try again.',
         [{ text: 'OK' }]
       );
+    }
+  };
+
+  const loadPrograms = async () => {
+    try {
+      setProgramsLoading(true);
+      console.log('Loading programs for user:', user?.id);
+      // TODO: When implementing Supabase:
+      // const { data, error } = await supabase
+      //   .from('programs')
+      //   .select('*')
+      //   .eq('trainer_id', user?.id)
+      //   .order('created_at', { ascending: false });
+      
+      const response = await getPrograms({ created_by: user?.id });
+      console.log('Programs response:', response);
+      setPrograms(response.programs);
+      console.log('Set programs state:', response.programs.length, 'programs');
+      
+    } catch (error) {
+      console.error('Error loading programs:', error);
+      Alert.alert(
+        'Error',
+        'Unable to load programs. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setProgramsLoading(false);
+    }
+  };
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([loadExercises(), loadPrograms()]);
     } finally {
       setLoading(false);
     }
@@ -127,7 +190,7 @@ export const TrainerContentLibraryScreen: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadExercises();
+    await loadData();
     setRefreshing(false);
   };
 
@@ -240,6 +303,22 @@ export const TrainerContentLibraryScreen: React.FC = () => {
     );
   };
 
+  const renderProgram = ({ item }: { item: Program }) => (
+    <TouchableOpacity style={styles.programCard}>
+      <View style={styles.programHeader}>
+        <Text style={styles.programTitle} numberOfLines={2}>{item.title}</Text>
+        <Text style={styles.programDuration}>{item.duration_weeks}w</Text>
+      </View>
+      <Text style={styles.programDescription} numberOfLines={3}>
+        {item.description}
+      </Text>
+      <View style={styles.programMeta}>
+        <Text style={styles.programDifficulty}>{item.difficulty}</Text>
+        <Text style={styles.programDays}>{item.days?.length || 0} days</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   const renderExercise = ({ item }: { item: Exercise }) => (
     <ExerciseCard
       exercise={item}
@@ -324,16 +403,12 @@ export const TrainerContentLibraryScreen: React.FC = () => {
         
         <TouchableOpacity 
           style={styles.myProgramsButton}
-          onPress={() => {
-            Alert.alert(
-              'My Programs',
-              'View and manage your created programs.',
-              [{ text: 'Coming Soon' }]
-            );
-          }}
+          onPress={() => setShowPrograms(!showPrograms)}
         >
           <Ionicons name="list" size={24} color={colors.primary} />
-          <Text style={styles.myProgramsButtonText}>My Programs</Text>
+          <Text style={styles.myProgramsButtonText}>
+            {showPrograms ? 'Hide Programs' : `My Programs (${programs.length})`}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -381,6 +456,46 @@ export const TrainerContentLibraryScreen: React.FC = () => {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Programs Section */}
+      {showPrograms && (
+        <View style={styles.programsSection}>
+          <SectionHeader
+            title="My Programs"
+            actionText="Create New"
+            onActionPress={handleCreateProgram}
+          />
+          
+          {programsLoading ? (
+            <View style={styles.emptyProgramsState}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.emptyProgramsSubtext}>Loading programs...</Text>
+            </View>
+          ) : programs.length === 0 ? (
+            <View style={styles.emptyProgramsState}>
+              <Ionicons name="fitness-outline" size={48} color={colors.gray[400]} />
+              <Text style={styles.emptyProgramsText}>No programs created yet</Text>
+              <Text style={styles.emptyProgramsSubtext}>
+                Create your first program to get started
+              </Text>
+              <Button
+                title="Create Program"
+                onPress={handleCreateProgram}
+                style={styles.emptyProgramsButton}
+              />
+            </View>
+          ) : (
+            <FlatList
+              data={programs}
+              renderItem={renderProgram}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.programsList}
+            />
+          )}
+        </View>
+      )}
 
       {/* Exercise List */}
       <FlatList
@@ -594,4 +709,113 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     textAlign: 'center',
   } as TextStyle,
+
+  // Programs Section Styles
+  programsSection: {
+    marginBottom: 24,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    // Cross-platform shadow/box-shadow
+    ...(Platform.OS === 'web' 
+      ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
+      : {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        }
+    ),
+  } as ViewStyle,
+
+  programsList: {
+    paddingHorizontal: 16,
+  } as ViewStyle,
+
+  programCard: {
+    width: 200,
+    backgroundColor: colors.gray[50],
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 16,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+  } as ViewStyle,
+
+  programHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  } as ViewStyle,
+
+  programTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.gray[900],
+    flex: 1,
+    marginRight: 8,
+  } as TextStyle,
+
+  programDuration: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.primary,
+    backgroundColor: colors.gray[100],
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  } as TextStyle,
+
+  programDescription: {
+    fontSize: 14,
+    color: colors.gray[600],
+    marginBottom: 12,
+    lineHeight: 20,
+  } as TextStyle,
+
+  programMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  } as ViewStyle,
+
+  programDifficulty: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.gray[600],
+    textTransform: 'capitalize',
+  } as TextStyle,
+
+  programDays: {
+    fontSize: 12,
+    color: colors.gray[600],
+  } as TextStyle,
+
+  emptyProgramsState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+  } as ViewStyle,
+
+  emptyProgramsText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.gray[900],
+    marginTop: 16,
+    marginBottom: 8,
+  } as TextStyle,
+
+  emptyProgramsSubtext: {
+    fontSize: 16,
+    color: colors.gray[600],
+    textAlign: 'center',
+    marginBottom: 24,
+  } as TextStyle,
+
+  emptyProgramsButton: {
+    marginTop: 8,
+  } as ViewStyle,
 });

@@ -6,7 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../../constants';
@@ -15,19 +17,9 @@ import { USER_ROLES } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { AuthService } from '../../services/auth';
 
-interface RoleSelectionScreenProps {
-  navigation: any;
-  route: {
-    params?: {
-      signUpData?: {
-        email: string;
-        password: string;
-        name: string;
-        date_of_birth?: string;
-      };
-    };
-  };
-}
+import { AuthStackParamList } from '../../navigation/types';
+
+type RoleSelectionScreenProps = NativeStackScreenProps<AuthStackParamList, 'RoleSelection'>;
 
 interface RoleOption {
   role: UserRole;
@@ -281,14 +273,20 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     borderWidth: 2,
     borderColor: COLORS.lightGray,
-    shadowColor: COLORS.black,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    // Cross-platform shadow/box-shadow
+    ...(Platform.OS === 'web' 
+      ? { boxShadow: '0px 2px 3.84px rgba(0, 0, 0, 0.1)' }
+      : {
+          shadowColor: COLORS.black,
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 3.84,
+          elevation: 5,
+        }
+    ),
   },
   
   roleCardSelected: {

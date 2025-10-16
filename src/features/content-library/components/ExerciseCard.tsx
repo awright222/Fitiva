@@ -21,6 +21,7 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
+  Platform,
   ViewStyle,
   TextStyle,
   ImageStyle,
@@ -240,11 +241,17 @@ const styles = StyleSheet.create({
     padding: 12,
     marginVertical: 6,
     marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    // Cross-platform shadow/box-shadow
+    ...(Platform.OS === 'web' 
+      ? { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)' }
+      : {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        }
+    ),
     borderWidth: 1,
     borderColor: colors.gray[200],
   } as ViewStyle,
@@ -397,10 +404,17 @@ const styles = StyleSheet.create({
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    // Cross-platform shadow/box-shadow
+    ...(Platform.OS === 'web' 
+      ? { boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.2)' }
+      : {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.2,
+          shadowRadius: 2,
+          elevation: 2,
+        }
+    ),
     elevation: 2,
   } as ViewStyle,
 });
