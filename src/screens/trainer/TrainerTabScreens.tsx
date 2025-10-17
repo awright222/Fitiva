@@ -1,5 +1,6 @@
 import React from 'react';
 import { PlaceholderScreen } from '../../components/PlaceholderScreen';
+import { TrainerProfileScreen } from './TrainerProfileScreen';
 
 // Import the new TrainerClientsScreen
 export { TrainerClientsScreen as ClientsScreen } from './TrainerClientsScreen';
@@ -37,17 +38,5 @@ export const ScheduleScreen: React.FC = () => {
 };
 
 export const ProfileScreen: React.FC = () => {
-  return (
-    <PlaceholderScreen
-      title="Profile"
-      subtitle="Manage your trainer profile"
-      features={[
-        'Professional information',
-        'Certifications',
-        'Specializations',
-        'Availability preferences',
-        'Account settings',
-      ]}
-    />
-  );
+  return <TrainerProfileScreen />;
 };
