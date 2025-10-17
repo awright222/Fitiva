@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { TrainerScheduleScreen } from '../features/scheduling/screens';
+import TrainerScheduleScreen from '../screens/trainer/TrainerScheduleScreen';
 import { COLORS } from '../constants';
 
 export type TrainerScheduleStackParamList = {
