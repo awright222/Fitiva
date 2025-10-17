@@ -153,6 +153,14 @@ export const mockUsers = {
   '4': { name: 'Emma Davis', avatar: '👩‍💻', role: 'client' },
   '5': { name: 'Mike Chen', avatar: '👨‍🔬', role: 'client' },
   '6': { name: 'Lisa Johnson', avatar: '👩‍🎨', role: 'client' },
+  // Full client UUIDs from mockTrainerData
+  'client1-uuid': { name: 'John Doe', avatar: '👨‍💼', role: 'client' },
+  'client2-uuid': { name: 'Jane Smith', avatar: '👩‍💻', role: 'client' },
+  'client3-uuid': { name: 'Bob Wilson', avatar: '👨‍🔧', role: 'client' },
+  'client4-uuid': { name: 'Emma Davis', avatar: '👩‍💻', role: 'client' },
+  'client5-uuid': { name: 'Mike Chen', avatar: '👨‍🔬', role: 'client' },
+  'client6-uuid': { name: 'Lisa Johnson', avatar: '👩‍🎨', role: 'client' },
+  '4505ca13-bda1-4d4f-9524-0bfea6d3516e': { name: 'Sarah Wilson', avatar: '👩‍🏫', role: 'trainer' }, // Real trainer ID
 } as const;
 
 // Helper functions for working with mock data

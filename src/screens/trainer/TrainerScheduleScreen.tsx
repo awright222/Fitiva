@@ -10,12 +10,19 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS } from '../../constants';
 import { SectionHeader } from '../../components/ui';
 import { mockTrainerData } from '../../data/mockData';
+import { TrainerScheduleStackParamList } from '../../navigation/TrainerScheduleNavigator';
+
+type TrainerScheduleScreenNavigationProp = StackNavigationProp<
+  TrainerScheduleStackParamList,
+  'TrainerSchedule'
+>;
 
 interface TrainerScheduleScreenProps {
-  navigation?: any;
+  navigation: TrainerScheduleScreenNavigationProp;
 }
 
 // TypeScript Interfaces
@@ -377,9 +384,16 @@ const TrainerScheduleScreen: React.FC<TrainerScheduleScreenProps> = ({ navigatio
 
   // Message Client Integration
   const handleMessageClient = (session: Session) => {
-    if (navigation) {
+    console.log('handleMessageClient called for:', session.client_name);
+    console.log('Navigation object:', navigation);
+    console.log('Parent navigator:', navigation.getParent());
+    
+    try {
       // Navigate to the parent tab navigator first, then to the specific screen
-      navigation.getParent()?.navigate('Messages', {
+      const parentNav = navigation.getParent();
+      console.log('Attempting navigation to Messages tab...');
+      
+      parentNav?.navigate('Messages', {
         screen: 'TrainerConversation',
         params: {
           participantId: session.client_id,
@@ -388,13 +402,11 @@ const TrainerScheduleScreen: React.FC<TrainerScheduleScreenProps> = ({ navigatio
           participantRole: 'client' as const,
         }
       });
-    } else {
-      // Fallback for demo
-      Alert.alert(
-        'Message Client',
-        `Open conversation with ${session.client_name}`,
-        [{ text: 'OK' }]
-      );
+      
+      console.log('Navigation attempt completed');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      Alert.alert('Navigation Error', `Could not open conversation: ${error}`);
     }
   };
 

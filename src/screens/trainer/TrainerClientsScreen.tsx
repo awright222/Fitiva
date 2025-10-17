@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../../constants';
 import { SectionHeader } from '../../components/ui';
 import { mockTrainerData } from '../../data/mockData';
@@ -54,6 +55,7 @@ interface Program {
 }
 
 export const TrainerClientsScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const [clients, setClients] = useState<Client[]>(mockTrainerData.clients as Client[]);
   const [availablePrograms] = useState<Program[]>(mockTrainerData.availablePrograms as Program[]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -107,9 +109,32 @@ export const TrainerClientsScreen: React.FC = () => {
 
   // Handle client actions
   const handleMessageClient = (client: Client) => {
-    // TODO: Navigate to messaging with client pre-selected
-    // navigation.navigate('Messages', { clientId: client.id });
-    Alert.alert('Message Client', `Opening chat with ${client.full_name}`);
+    console.log('Message Client button pressed for:', client.full_name);
+    console.log('Navigation object:', navigation);
+    
+    try {
+      // Close the client modal first
+      setShowClientModal(false);
+      setSelectedClient(null);
+      
+      // Small delay to ensure modal closes before navigation
+      setTimeout(() => {
+        // Navigate to Messages tab and open conversation with this client
+        navigation.navigate('Messages', {
+          screen: 'TrainerConversation',
+          params: {
+            participantId: client.id,
+            participantName: client.full_name,
+            participantAvatar: client.profile_image,
+            participantRole: 'client' as const,
+          }
+        });
+        console.log('Navigation to Messages completed');
+      }, 100);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      Alert.alert('Navigation Error', `Could not open conversation: ${error}`);
+    }
   };
 
   const handleViewPrograms = (client: Client) => {

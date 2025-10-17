@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DashboardCard, SectionHeader, Button } from '../../components/ui';
 import { mockTrainerData } from '../../data/mockData';
+import { getConversations } from '../../features/messaging/data/mockData';
 import { FEATURES } from '../../config/features';
 import { COLORS } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
@@ -13,11 +14,42 @@ interface TrainerHomeScreenProps {
 
 export const TrainerHomeScreen: React.FC<TrainerHomeScreenProps> = ({ navigation }) => {
   const { signOut, userProfile } = useAuth();
-  const { profile, clients, todaySessions, recentMessages, earnings } = mockTrainerData;
+  const { profile, clients, todaySessions, earnings } = mockTrainerData;
+  
+  // Helper function to get relative time
+  const getRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.abs(now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)} hours ago`;
+    } else {
+      return `${Math.floor(diffInHours / 24)} days ago`;
+    }
+  };
+  
+  // Get real recent messages from messaging system
+  const trainerId = '2'; // Force to '2' for demo to match mock data
+  const conversations = getConversations(trainerId);
+  const recentMessages = conversations.slice(0, 2).map(conv => ({
+    id: conv.id,
+    clientName: conv.participant_name,
+    message: conv.last_message.content.length > 50 
+      ? conv.last_message.content.substring(0, 50) + '...'
+      : conv.last_message.content,
+    time: getRelativeTime(conv.last_message.created_at),
+  }));
 
   const handleClientManagement = () => {
-    // TODO: Navigate to client management screen
-    console.log('Navigate to client management');
+    // Navigate to Clients tab
+    if (navigation) {
+      navigation.navigate('Clients');
+    } else {
+      console.log('Navigate to client management');
+    }
   };
 
   const handleScheduleManagement = () => {
@@ -70,8 +102,10 @@ export const TrainerHomeScreen: React.FC<TrainerHomeScreenProps> = ({ navigation
           {clients.slice(0, 3).map((client) => (
             <DashboardCard
               key={client.id}
-              title={client.name}
-              subtitle={`Next: ${client.nextSession}`}
+              title={client.full_name}
+              subtitle={client.session_stats.next_session 
+                ? `Next: ${new Date(client.session_stats.next_session).toLocaleDateString()}` 
+                : 'No upcoming sessions'}
               icon="👤"
               onPress={handleClientManagement}
             />

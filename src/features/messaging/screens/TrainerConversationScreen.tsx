@@ -104,7 +104,7 @@ export const TrainerConversationScreen: React.FC<TrainerConversationScreenProps>
       setLoading(true);
       
       // Mock trainer ID for demonstration (replace with real auth)
-      const trainerId = user?.id || '2'; // Default to trainer user for demo
+      const trainerId = '2'; // Force to '2' for demo to match mock data
       
       // TODO: When implementing Supabase:
       // const { data, error } = await supabase
@@ -135,7 +135,7 @@ export const TrainerConversationScreen: React.FC<TrainerConversationScreenProps>
 
   // TODO: Replace with: supabase.from('messages').update({ read_at: new Date() }).eq('sender_id', participantId).eq('receiver_id', trainerId).is('read_at', null)
   const markMessagesAsRead = () => {
-    const trainerId = user?.id || '2';
+    const trainerId = '2'; // Force to '2' for demo to match mock data
     markConversationAsRead(trainerId, participantId);
   };
 
@@ -177,7 +177,7 @@ export const TrainerConversationScreen: React.FC<TrainerConversationScreenProps>
     try {
       setSending(true);
       
-      const trainerId = user?.id || '2';
+      const trainerId = '2'; // Force to '2' for demo to match mock data
       const messageContent = messageText.trim();
       
       // Clear input immediately for better UX
@@ -230,7 +230,7 @@ export const TrainerConversationScreen: React.FC<TrainerConversationScreenProps>
   };
 
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
-    const trainerId = user?.id || '2';
+    const trainerId = '2'; // Force to '2' for demo to match mock data
     const isOwnMessage = item.sender_id === trainerId;
     
     // Show timestamp for first message, or if significant time gap
@@ -257,7 +257,7 @@ export const TrainerConversationScreen: React.FC<TrainerConversationScreenProps>
         <View style={styles.header}>
           <SectionHeader 
             title={participantName}
-            subtitle={`Client • ${participantAvatar}`}
+            subtitle={`Client${participantAvatar ? ` • ${participantAvatar}` : ''}`}
           />
           
           {/* TODO: Add client context information */}

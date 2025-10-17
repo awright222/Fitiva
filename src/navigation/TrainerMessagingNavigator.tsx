@@ -31,16 +31,27 @@ export const TrainerMessagingNavigator: React.FC = () => {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerShown: false, // We handle headers in individual screens
+        headerStyle: {
+          backgroundColor: '#2196f3',
+        },
+        headerTintColor: '#ffffff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
       }}
     >
       <Stack.Screen 
         name="TrainerMessages" 
         component={TrainerMessagesScreen}
+        options={{ title: 'Messages' }}
       />
       <Stack.Screen 
         name="TrainerConversation" 
         component={TrainerConversationScreen}
+        options={({ route }) => ({ 
+          title: route.params?.participantName || 'Conversation',
+          headerBackTitle: 'Messages'
+        })}
       />
     </Stack.Navigator>
   );
