@@ -57,7 +57,7 @@ export const RootNavigator: React.FC = () => {
           {userRole === 'client' && (
             <Stack.Screen name="ClientTabs" component={ClientTabNavigator} />
           )}
-          {(userRole === 'trainer' || profileTimeout) && (
+          {userRole === 'trainer' && (
             <Stack.Screen name="TrainerTabs" component={TrainerTabNavigator} />
           )}
           {userRole === 'org_manager' && (
@@ -65,6 +65,9 @@ export const RootNavigator: React.FC = () => {
           )}
           {userRole === 'admin' && (
             <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />
+          )}
+          {!userRole && profileTimeout && (
+            <Stack.Screen name="TrainerTabs" component={TrainerTabNavigator} />
           )}
         </>
       )}

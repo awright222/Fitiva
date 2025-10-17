@@ -112,16 +112,29 @@ export class AuthService {
         throw new Error('No authenticated user found');
       }
 
-      const { data, error } = await supabase
+      // First, try to get the profile from profiles table
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, created_at, updated_at, date_of_birth, phone_number, emergency_contact_name, emergency_contact_phone, medical_notes')
+        .select('*')
         .eq('id', currentUser)
         .single();
 
-      if (error) {
-        // If user profile doesn't exist, we'll create it in the fallback
-      } else {
-        return data;
+      if (profile && !profileError) {
+        // Now fetch user role from user_organizations (handle multiple roles by taking first)
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_organizations')
+          .select('role')
+          .eq('user_id', currentUser)
+          .limit(1);
+
+        if (!roleError && roleData && roleData.length > 0) {
+          const role = roleData[0].role;
+          return { ...profile, role };
+        }
+
+        // If no role found, return profile without role
+        console.warn('No role found for user:', currentUser);
+        return { ...profile, role: null };
       }
       
       // Fallback: Use current auth user data and create profile if needed

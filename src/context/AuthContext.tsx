@@ -119,7 +119,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (targetUserId) {
       try {
         const profile = await AuthService.getUserProfile(targetUserId);
-        setUser(profile);
+        setUserProfile(profile);
+        await storeUserProfile(profile);
         setIsLoading(false);
       } catch (error: any) {
         console.error('Error refreshing profile:', error);
@@ -128,13 +129,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (error?.message?.includes('timeout') || error?.message?.includes('Query timeout')) {
           const currentUser = await AuthService.getCurrentUser();
           if (currentUser) {
-            const fallbackProfile = {
+            const fallbackProfile: User = {
               id: currentUser.id,
-              name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'User',
+              full_name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'User',
               email: currentUser.email || '',
               role: currentUser.user_metadata?.role || 'trainer',
               created_at: currentUser.created_at || new Date().toISOString(),
               updated_at: new Date().toISOString(),
+              phone_number: undefined,
+              date_of_birth: undefined,
+              emergency_contact_name: undefined,
+              emergency_contact_phone: undefined,
+              medical_notes: undefined,
             };
             setUserProfile(fallbackProfile);
             await storeUserProfile(fallbackProfile);
