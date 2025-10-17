@@ -40,11 +40,16 @@ import { SectionHeader, Button } from '../../../components/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { FEATURES, canAccessOrgContent } from '../../../config/features';
 import type { Exercise, ExerciseFilters } from '../../../types';
+import type { Program } from '../../../types';
 import { 
   getExercisesByScope, 
   createExerciseWithMedia, 
   deleteExercise,
-  deleteStorageFile 
+  deleteStorageFile,
+  getPrograms,
+  updateProgram,
+  deleteProgram,
+  getProgramAssignments
 } from '../../../services/content-library';
 import { TrainerProgramsStackParamList } from '../../../navigation/types';
 
@@ -93,7 +98,7 @@ const typography = {
   },
 } as const;
 
-type TabType = 'my' | 'org' | 'global';
+type TabType = 'programs' | 'my' | 'org' | 'global';
 
 interface TabInfo {
   key: TabType;
@@ -107,15 +112,24 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
   const { user } = useAuth();
   
   // State management
-  const [activeTab, setActiveTab] = useState<TabType>('my');
+  const [activeTab, setActiveTab] = useState<TabType>('programs');
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState<ExerciseFilters>({});
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
 
   // Define available tabs
   const tabs: TabInfo[] = [
+    {
+      key: 'programs' as TabType,
+      title: 'My Programs',
+      icon: 'fitness',
+      enabled: true,
+    },
     {
       key: 'my' as TabType,
       title: 'My Exercises',
@@ -136,32 +150,39 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
     },
   ].filter(tab => tab.enabled);
 
-  // Load exercises when tab or filters change
+  // Load data when tab or filters change
   useEffect(() => {
-    loadExercises();
+    loadData();
   }, [activeTab, filters, user?.id]);
 
   // Reload data when screen comes back into focus
   useFocusEffect(
     useCallback(() => {
       console.log('TrainerContentLibraryEnhanced focused - reloading data');
-      loadExercises();
+      loadData();
     }, [activeTab, filters])
   );
 
-  const loadExercises = async () => {
+  const loadData = async () => {
     if (!user?.id) return;
     
     try {
       setLoading(true);
-      console.log(`Loading exercises for scope: ${activeTab}`);
       
-      const { exercises: data } = await getExercisesByScope(activeTab, filters);
-      setExercises(data);
-      console.log(`Loaded ${data.length} exercises for ${activeTab} scope`);
+      if (activeTab === 'programs') {
+        console.log('Loading programs...');
+        const { programs: data } = await getPrograms();
+        setPrograms(data);
+        console.log(`Loaded ${data.length} programs`);
+      } else {
+        console.log(`Loading exercises for scope: ${activeTab}`);
+        const { exercises: data } = await getExercisesByScope(activeTab as 'my' | 'org' | 'global', filters);
+        setExercises(data);
+        console.log(`Loaded ${data.length} exercises for ${activeTab} scope`);
+      }
     } catch (error) {
-      console.error('Error loading exercises:', error);
-      Alert.alert('Error', 'Failed to load exercises. Please try again.');
+      console.error('Error loading data:', error);
+      Alert.alert('Error', 'Failed to load data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -169,7 +190,7 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadExercises();
+    await loadData();
     setRefreshing(false);
   };
 
@@ -201,7 +222,7 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
               await deleteExercise(exercise.id);
               
               // Reload exercises
-              await loadExercises();
+              await loadData();
               
               Alert.alert('Success', 'Exercise deleted successfully.');
             } catch (error) {
@@ -220,9 +241,32 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
       return;
     }
 
-    // TODO: Navigate to edit modal
-    console.log('Edit exercise:', exercise.id);
-    Alert.alert('Coming Soon', 'Exercise editing functionality will be available soon.');
+    setEditingExercise(exercise);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteProgram = async (program: Program) => {
+    Alert.alert(
+      'Delete Program',
+      `Are you sure you want to delete "${program.title}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteProgram(program.id);
+              await loadData(); // Refresh list
+              Alert.alert('Success', 'Program deleted successfully');
+            } catch (error) {
+              console.error('Error deleting program:', error);
+              Alert.alert('Error', 'Failed to delete program. Please try again.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderTabBar = () => (
@@ -273,6 +317,11 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
         subtitle: 'Global exercises will appear here when available',
         action: null,
       },
+      programs: {
+        title: 'No programs yet',
+        subtitle: 'Create your first program to get started',
+        action: 'Create Program',
+      },
     };
 
     const message = messages[activeTab];
@@ -285,7 +334,13 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
         {message.action && (
           <TouchableOpacity
             style={styles.emptyStateButton}
-            onPress={() => setShowAddModal(true)}
+            onPress={() => {
+              if (activeTab === 'programs') {
+                navigation.navigate('ProgramBuilder', { mode: 'create' });
+              } else {
+                setShowAddModal(true);
+              }
+            }}
           >
             <Text style={styles.emptyStateButtonText}>{message.action}</Text>
           </TouchableOpacity>
@@ -299,12 +354,52 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
       exercise={item}
       onPress={() => {
         // TODO: Navigate to exercise detail view
-        console.log('View exercise:', item.id);
+        console.log('Exercise pressed:', item.title);
       }}
       onEdit={activeTab === 'my' ? () => handleEditExercise(item) : undefined}
       onDelete={activeTab === 'my' ? () => handleDeleteExercise(item) : undefined}
-      showActions={activeTab === 'my'}
+      showActions={activeTab === 'my'} // Show edit/delete buttons only for user's own exercises
     />
+  );
+
+  const renderProgramItem = ({ item }: { item: Program }) => (
+    <View style={styles.programCard}>
+      <View style={styles.programHeader}>
+        <View style={styles.programInfo}>
+          <Text style={styles.programTitle}>{item.title}</Text>
+          <Text style={styles.programDescription}>{item.description}</Text>
+          <Text style={styles.programMeta}>
+            {item.program_days?.length || 0} days • Duration: {item.duration_weeks} weeks
+          </Text>
+        </View>
+        <View style={styles.programActions}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.editButton]}
+            onPress={() => navigation.navigate('ProgramBuilder', { mode: 'edit', program: item })}
+          >
+            <Ionicons name="pencil" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.deleteButton]}
+            onPress={() => handleDeleteProgram(item)}
+          >
+            <Ionicons name="trash" size={20} color={colors.danger} />
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.programFooter}>
+        <TouchableOpacity
+          style={styles.assignButton}
+          onPress={() => {
+            // TODO: Navigate to assignment screen
+            console.log('Assign program:', item.title);
+          }}
+        >
+          <Ionicons name="people" size={18} color={colors.white} />
+          <Text style={styles.assignButtonText}>Assign to Clients</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 
   if (!FEATURES.CONTENT_LIBRARY_ENABLED) {
@@ -326,13 +421,21 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <SectionHeader title="Content Library" />
-        {activeTab === 'my' && (
+        {(activeTab === 'my' || activeTab === 'programs') && (
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => setShowAddModal(true)}
+            onPress={() => {
+              if (activeTab === 'programs') {
+                navigation.navigate('ProgramBuilder', { mode: 'create' });
+              } else {
+                setShowAddModal(true);
+              }
+            }}
           >
             <Ionicons name="add" size={24} color={colors.white} />
-            <Text style={styles.addButtonText}>Add Exercise</Text>
+            <Text style={styles.addButtonText}>
+              {activeTab === 'programs' ? 'Create Program' : 'Add Exercise'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -340,12 +443,29 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
       {/* Tab Bar */}
       {renderTabBar()}
 
-      {/* Exercise List */}
+      {/* Content List */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading exercises...</Text>
+          <Text style={styles.loadingText}>
+            Loading {activeTab === 'programs' ? 'programs' : 'exercises'}...
+          </Text>
         </View>
+      ) : activeTab === 'programs' ? (
+        programs.length === 0 ? (
+          renderEmptyState()
+        ) : (
+          <FlatList
+            data={programs}
+            renderItem={renderProgramItem}
+            keyExtractor={(item) => item.id.toString()}
+            style={styles.exerciseList}
+            contentContainerStyle={styles.exerciseListContent}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            showsVerticalScrollIndicator={false}
+          />
+        )
       ) : exercises.length === 0 ? (
         renderEmptyState()
       ) : (
@@ -367,7 +487,22 @@ export const TrainerContentLibraryEnhanced: React.FC = () => {
         onClose={() => setShowAddModal(false)}
         onSuccess={() => {
           setShowAddModal(false);
-          loadExercises(); // Refresh the list
+          loadData(); // Refresh the list
+        }}
+      />
+
+      {/* Edit Exercise Modal */}
+      <ExerciseModal
+        visible={showEditModal}
+        exercise={editingExercise || undefined}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingExercise(null);
+        }}
+        onSuccess={() => {
+          setShowEditModal(false);
+          setEditingExercise(null);
+          loadData(); // Refresh the list
         }}
       />
     </SafeAreaView>
@@ -512,6 +647,97 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     marginTop: 8,
     textAlign: 'center',
+  } as TextStyle,
+
+  // Program card styles
+  programCard: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginVertical: 8,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  } as ViewStyle,
+
+  programHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  } as ViewStyle,
+
+  programInfo: {
+    flex: 1,
+    marginRight: 16,
+  } as ViewStyle,
+
+  programTitle: {
+    ...typography.h2,
+    color: colors.gray[900],
+    marginBottom: 8,
+  } as TextStyle,
+
+  programDescription: {
+    ...typography.body,
+    color: colors.gray[600],
+    marginBottom: 8,
+  } as TextStyle,
+
+  programMeta: {
+    fontSize: 16,
+    color: colors.gray[600],
+    fontWeight: '500',
+  } as TextStyle,
+
+  programActions: {
+    flexDirection: 'row',
+    gap: 8,
+  } as ViewStyle,
+
+  actionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  } as ViewStyle,
+
+  editButton: {
+    backgroundColor: colors.blue[50],
+    borderColor: colors.primary,
+  } as ViewStyle,
+
+  deleteButton: {
+    backgroundColor: '#fef2f2',
+    borderColor: colors.danger,
+  } as ViewStyle,
+
+  programFooter: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[200],
+  } as ViewStyle,
+
+  assignButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.success,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  } as ViewStyle,
+
+  assignButtonText: {
+    fontSize: 16,
+    color: colors.white,
+    fontWeight: '600',
+    marginLeft: 8,
   } as TextStyle,
 });
 

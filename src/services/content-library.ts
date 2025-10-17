@@ -124,7 +124,8 @@ export async function createExercise(exerciseData: CreateExerciseData): Promise<
     .from('content_library')
     .insert({
       ...exerciseData,
-      type: exerciseData.type || 'exercise' // Default to 'exercise' type
+      type: exerciseData.type || 'exercise', // Default to 'exercise' type
+      created_by: user.id, // Set the created_by field for RLS policy
     })
     .select()
     .single();

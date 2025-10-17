@@ -30,7 +30,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { InputField, Button } from '../../../components/ui';
 import { FEATURES } from '../../../config/features';
 import type { Exercise } from '../../../types';
-import { createExercise } from '../../../services/content-library';
+import { createExercise, updateExercise } from '../../../services/content-library';
 
 interface ExerciseModalProps {
   visible: boolean;
@@ -208,8 +208,18 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
     try {
       if (exercise) {
         // Update existing exercise
-        // TODO: Implement updateExerciseWithMedia service function
-        Alert.alert('Coming Soon', 'Exercise editing will be available soon.');
+        await updateExercise(exercise.id, {
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          muscle_groups: formData.muscle_groups.join(', '), // Convert array to string for service
+          difficulty: formData.difficulty.toLowerCase(), // Convert to lowercase for database enum
+          equipment: formData.equipment,
+        });
+
+        Alert.alert('Success', 'Exercise updated successfully!');
+        onSuccess();
+        onClose();
       } else {
         // Create new exercise (basic version without media upload)
         await createExercise({
@@ -217,7 +227,7 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
           description: formData.description,
           category: formData.category,
           muscle_groups: formData.muscle_groups.join(', '), // Convert array to string for service
-          difficulty: formData.difficulty,
+          difficulty: formData.difficulty.toLowerCase(), // Convert to lowercase for database enum
           equipment: formData.equipment,
           type: 'exercise',
         });

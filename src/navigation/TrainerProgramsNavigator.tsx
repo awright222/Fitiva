@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { TrainerContentLibraryScreen, ProgramBuilderScreen } from '../features/content-library/screens';
+import { TrainerContentLibraryEnhanced, ProgramBuilderScreen } from '../features/content-library/screens';
 import { TrainerProgramsStackParamList } from './types';
 
 const Stack = createStackNavigator<TrainerProgramsStackParamList>();
@@ -21,7 +21,7 @@ export const TrainerProgramsNavigator: React.FC = () => {
     >
       <Stack.Screen 
         name="ContentLibrary" 
-        component={TrainerContentLibraryScreen}
+        component={TrainerContentLibraryEnhanced}
         options={{ 
           title: 'Exercise Library & Programs',
           headerShown: false, // Let the screen handle its own header

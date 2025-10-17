@@ -26,6 +26,7 @@ export const InputField: React.FC<InputFieldProps> = ({
   required = false,
   secureTextEntry = false,
   containerStyle,
+  numberOfLines, // Extract numberOfLines to handle separately
   ...textInputProps
 }) => {
   const [isSecure, setIsSecure] = useState(secureTextEntry);
@@ -52,6 +53,7 @@ export const InputField: React.FC<InputFieldProps> = ({
           onBlur={() => setIsFocused(false)}
           placeholderTextColor={COLORS.gray}
           accessibilityLabel={label}
+          numberOfLines={numberOfLines} // Keep using numberOfLines for now since rows doesn't exist
           {...textInputProps}
         />
         
