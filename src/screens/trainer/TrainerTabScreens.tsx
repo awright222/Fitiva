@@ -1,21 +1,8 @@
 import React from 'react';
 import { PlaceholderScreen } from '../../components/PlaceholderScreen';
 
-export const ClientsScreen: React.FC = () => {
-  return (
-    <PlaceholderScreen
-      title="My Clients"
-      subtitle="Manage your client roster"
-      features={[
-        'Client list and profiles',
-        'Progress monitoring',
-        'Communication tools',
-        'Session scheduling',
-        'Program assignments',
-      ]}
-    />
-  );
-};
+// Import the new TrainerClientsScreen
+export { TrainerClientsScreen as ClientsScreen } from './TrainerClientsScreen';
 
 export const HomeScreen: React.FC = () => {
   return (

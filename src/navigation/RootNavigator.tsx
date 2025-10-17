@@ -52,24 +52,17 @@ export const RootNavigator: React.FC = () => {
           component={LoadingScreen} 
           options={{ headerShown: false }}
         />
+      ) : userRole === 'client' ? (
+        <Stack.Screen name="ClientTabs" component={ClientTabNavigator} />
+      ) : userRole === 'trainer' ? (
+        <Stack.Screen name="TrainerTabs" component={TrainerTabNavigator} />
+      ) : userRole === 'org_manager' ? (
+        <Stack.Screen name="OrgTabs" component={OrgTabNavigator} />
+      ) : userRole === 'admin' ? (
+        <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />
       ) : (
-        <>
-          {userRole === 'client' && (
-            <Stack.Screen name="ClientTabs" component={ClientTabNavigator} />
-          )}
-          {userRole === 'trainer' && (
-            <Stack.Screen name="TrainerTabs" component={TrainerTabNavigator} />
-          )}
-          {userRole === 'org_manager' && (
-            <Stack.Screen name="OrgTabs" component={OrgTabNavigator} />
-          )}
-          {userRole === 'admin' && (
-            <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />
-          )}
-          {!userRole && profileTimeout && (
-            <Stack.Screen name="TrainerTabs" component={TrainerTabNavigator} />
-          )}
-        </>
+        // Fallback to trainer interface if role is unknown
+        <Stack.Screen name="TrainerTabs" component={TrainerTabNavigator} />
       )}
     </Stack.Navigator>
   );
