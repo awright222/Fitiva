@@ -34,6 +34,21 @@ export type SessionStatus = 'scheduled' | 'completed' | 'canceled' | 'pending';
 // Session modes for hybrid scheduling
 export type SessionMode = 'in_person' | 'virtual' | 'self_guided';
 
+// Training style preferences
+export type TrainingStyle = 'in_person' | 'virtual' | 'self_guided' | 'any';
+
+// Activity levels
+export type ActivityLevel = 'low' | 'moderate' | 'high';
+
+// Program difficulty levels
+export type ProgramDifficulty = 'beginner' | 'intermediate' | 'advanced';
+
+// Program categories
+export type ProgramCategory = 'strength' | 'cardio' | 'flexibility' | 'balance' | 'recovery' | 'weight_loss' | 'muscle_gain' | 'general_fitness';
+
+// Client program status
+export type ClientProgramStatus = 'active' | 'completed' | 'paused' | 'archived';
+
 // Session interface
 export interface Session {
   id: string | number; // Support both string (mock) and number (database) IDs
@@ -203,4 +218,103 @@ export interface ExerciseFilters {
   created_by?: string;
   has_video?: boolean;
   has_thumbnail?: boolean;
+}
+
+// =====================================================
+// CLIENT PROFILE & MARKETPLACE TYPES
+// =====================================================
+
+// Enhanced Client Profile interface
+export interface ClientProfile {
+  id: number;
+  user_id: string;
+  
+  // Personal Information
+  age?: number;
+  height_cm?: number;
+  weight_kg?: number;
+  gender?: string;
+  location?: string;
+  
+  // Fitness Goals & Preferences  
+  goals?: string[]; // e.g. ["mobility", "weight_loss", "strength"]
+  preferred_training_style?: TrainingStyle;
+  frequency_per_week?: number;
+  
+  // Health & Medical Information
+  physical_limitations?: string;
+  medical_conditions?: string[];
+  medications?: string;
+  
+  // Equipment & Activity
+  equipment_access?: string[]; // e.g. ["dumbbells", "resistance_bands", "gym_access"]
+  activity_level?: ActivityLevel;
+  motivation_level?: number; // 1-10 scale
+  
+  // Privacy & Discovery
+  discoverable?: boolean;
+  
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+}
+
+// Enhanced Program interface for marketplace
+export interface MarketplaceProgram extends Program {
+  difficulty?: ProgramDifficulty;
+  duration_weeks?: number;
+  category?: ProgramCategory;
+  price?: number;
+  is_public?: boolean;
+  equipment_needed?: string[];
+  thumbnail_url?: string;
+  trainer_name?: string; // Populated from join
+  client_program_id?: number; // If user already has this program
+  progress_percent?: number; // User's progress if enrolled
+  client_status?: ClientProgramStatus; // User's enrollment status
+}
+
+// Client Program Assignment interface (updated)
+export interface ClientProgramAssignment {
+  id: string; // Keep consistent with existing ClientProgram
+  client_id: string;
+  program_id: number;
+  assigned_by?: string; // NULL for self-selected programs
+  
+  // Progress tracking
+  progress_percent: number;
+  status: 'active' | 'completed' | 'paused' | 'cancelled'; // Keep existing type
+  
+  // Timestamps
+  started_at: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+  
+  // Populated from joins
+  program_title?: string;
+  program_description?: string;
+  program_difficulty?: ProgramDifficulty;
+  program_duration_weeks?: number;
+  program_category?: ProgramCategory;
+  program_thumbnail_url?: string;
+  trainer_name?: string;
+}
+
+// Program marketplace filters
+export interface ProgramFilters {
+  category?: ProgramCategory;
+  difficulty?: ProgramDifficulty;
+  duration_weeks?: {
+    min?: number;
+    max?: number;
+  };
+  equipment_needed?: string[];
+  price?: {
+    min?: number;
+    max?: number;
+    free_only?: boolean;
+  };
+  search?: string;
+  trainer_id?: string;
 }

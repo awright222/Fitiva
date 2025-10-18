@@ -14,9 +14,17 @@ export const FEATURES = {
   VIDEO_COMPRESSION_ENABLED: true, // Compress videos before upload (mobile optimization)
   AI_SUGGESTIONS_ENABLED: false, // Smart exercise suggestions (future)
   
+  // Client Profile & Marketplace (Phase 3)
+  ENHANCED_CLIENT_PROFILES: true, // Detailed client onboarding with health info
+  PROGRAM_MARKETPLACE_ENABLED: true, // Public program discovery and self-selection
+  CLIENT_PROGRAM_LIBRARY: true, // Personal program collection and progress tracking
+  TRAINER_CLIENT_MATCHING: false, // AI-powered trainer recommendations (future)
+  PROGRAM_RECOMMENDATIONS: false, // AI program suggestions based on profile (future)
+  
   // Payment & subscription features (Post-MVP) 
-  PAYMENTS_ENABLED: false,
-  SUBSCRIPTION_MANAGEMENT: false,
+  PAYMENTS_ENABLED: false, // Program purchases and trainer payments
+  SUBSCRIPTION_MANAGEMENT: false, // Premium subscriptions
+  PROGRAM_PRICING: false, // Paid programs in marketplace (requires PAYMENTS_ENABLED)
   
   // Communication features (Phase 2)
   MESSAGING_ENABLED: true, 
