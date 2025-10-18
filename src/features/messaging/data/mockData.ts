@@ -148,19 +148,21 @@ export const mockMessages: Message[] = [
 
 // Mock users for participant info
 export const mockUsers = {
-  '1': { name: 'John Doe', avatar: '👨‍💼', role: 'client' },
+  '1': { name: 'John Doe', avatar: '👨‍💼', role: 'client' }, // Default client for demo
+  '81bf6d71-c465-438a-bb2c-c2d0461755e5': { name: 'John Doe', avatar: '👨‍💼', role: 'client' }, // Real client UUID from logs
   '2': { name: 'Sarah Wilson', avatar: '👩‍🏫', role: 'trainer' },
-  '4': { name: 'Emma Davis', avatar: '👩‍💻', role: 'client' },
-  '5': { name: 'Mike Chen', avatar: '👨‍🔬', role: 'client' },
-  '6': { name: 'Lisa Johnson', avatar: '👩‍🎨', role: 'client' },
-  // Full client UUIDs from mockTrainerData
+  '3': { name: 'Mike Rodriguez', avatar: '�‍�', role: 'trainer' },
+  '4': { name: 'Jennifer Park', avatar: '👩‍🧘', role: 'trainer' },
+  '5': { name: 'David Kim', avatar: '👨‍🔬', role: 'trainer' },
+  '6': { name: 'Lisa Thompson', avatar: '👩‍⚕️', role: 'trainer' },
+  // Client UUIDs
   'client1-uuid': { name: 'John Doe', avatar: '👨‍💼', role: 'client' },
   'client2-uuid': { name: 'Jane Smith', avatar: '👩‍💻', role: 'client' },
   'client3-uuid': { name: 'Bob Wilson', avatar: '👨‍🔧', role: 'client' },
   'client4-uuid': { name: 'Emma Davis', avatar: '👩‍💻', role: 'client' },
   'client5-uuid': { name: 'Mike Chen', avatar: '👨‍🔬', role: 'client' },
   'client6-uuid': { name: 'Lisa Johnson', avatar: '👩‍🎨', role: 'client' },
-  '4505ca13-bda1-4d4f-9524-0bfea6d3516e': { name: 'Sarah Wilson', avatar: '👩‍🏫', role: 'trainer' }, // Real trainer ID
+  '4505ca13-bda1-4d4f-9524-0bfea6d3516e': { name: 'Sarah Wilson', avatar: '👩‍🏫', role: 'trainer' }, // Real trainer ID from auth
 } as const;
 
 // Helper functions for working with mock data
@@ -168,9 +170,32 @@ export const mockUsers = {
 
 // TODO: Replace with: supabase.from('conversations_view').select().eq('user_id', userId)
 export const getConversations = (userId: string): Conversation[] => {
+  console.log('🔍 Getting conversations for user:', userId);
+  console.log('📊 Total messages in system:', mockMessages.length);
+  console.log('🗃️ Available mock user IDs:', Object.keys(mockUsers));
+  
+  // First check if this user exists in our mock data
+  if (!mockUsers[userId as keyof typeof mockUsers]) {
+    console.log('⚠️  User not found in mockUsers, adding as client:', userId);
+    // Dynamically add the user as a client if they don't exist
+    (mockUsers as any)[userId] = { 
+      name: 'Current User', 
+      avatar: '👨‍💼', 
+      role: 'client' 
+    };
+  }
+  
   const userMessages = mockMessages.filter(
     msg => msg.sender_id === userId || msg.receiver_id === userId
   );
+  
+  console.log('📨 Messages for user:', userMessages.length);
+  console.log('📋 User messages details:', userMessages.map(m => ({
+    id: m.id,
+    from: m.sender_id,
+    to: m.receiver_id,
+    content: m.content.substring(0, 50) + '...'
+  })));
 
   // Group messages by conversation partner
   const conversationsMap = new Map<string, Message[]>();
@@ -186,18 +211,21 @@ export const getConversations = (userId: string): Conversation[] => {
   // Convert to conversation objects
   const conversations: Conversation[] = [];
   conversationsMap.forEach((messages, partnerId) => {
+    console.log(`Processing conversation with partner ${partnerId}, messages:`, messages.length);
     const sortedMessages = messages.sort((a, b) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     const lastMessage = sortedMessages[0];
     const partner = mockUsers[partnerId as keyof typeof mockUsers];
     
+    console.log('Partner info for', partnerId, ':', partner);
+    
     if (partner) {
       const unreadCount = messages.filter(
         msg => msg.receiver_id === userId && !msg.read_at
       ).length;
 
-      conversations.push({
+      const conversation = {
         id: `${userId}-${partnerId}`,
         participant_id: partnerId,
         participant_name: partner.name,
@@ -206,14 +234,24 @@ export const getConversations = (userId: string): Conversation[] => {
         last_message: lastMessage,
         unread_count: unreadCount,
         updated_at: lastMessage.created_at,
-      });
+      };
+      
+      console.log('Created conversation:', conversation);
+      conversations.push(conversation);
+    } else {
+      console.log('No partner found for ID:', partnerId);
     }
   });
 
   // Sort by last message time
-  return conversations.sort((a, b) => 
+  const sortedConversations = conversations.sort((a, b) => 
     new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
   );
+  
+  console.log('Final conversations returned:', sortedConversations.length);
+  console.log('Conversations:', sortedConversations);
+  
+  return sortedConversations;
 };
 
 // TODO: Replace with: supabase.from('messages').select().or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq('conversation_partner', partnerId)
@@ -232,11 +270,32 @@ export const sendMessage = (messageData: {
   receiver_id: string; 
   content: string; 
 }): Message => {
+  console.log('📤 sendMessage called with:', messageData);
+  
+  // Auto-add users if they don't exist
+  if (!mockUsers[messageData.sender_id as keyof typeof mockUsers]) {
+    console.log('🆕 Adding sender to mockUsers:', messageData.sender_id);
+    (mockUsers as any)[messageData.sender_id] = { 
+      name: 'Current User', 
+      avatar: '👨‍💼', 
+      role: 'client' 
+    };
+  }
+  
+  if (!mockUsers[messageData.receiver_id as keyof typeof mockUsers]) {
+    console.log('🆕 Adding receiver to mockUsers:', messageData.receiver_id);
+    (mockUsers as any)[messageData.receiver_id] = { 
+      name: 'Trainer', 
+      avatar: '👩‍🏫', 
+      role: 'trainer' 
+    };
+  }
+  
   const sender = mockUsers[messageData.sender_id as keyof typeof mockUsers];
   const receiver = mockUsers[messageData.receiver_id as keyof typeof mockUsers];
   
   const newMessage: Message = {
-    id: `mock-${Date.now()}`,
+    id: `mock-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     sender_id: messageData.sender_id,
     receiver_id: messageData.receiver_id,
     content: messageData.content,
@@ -245,11 +304,24 @@ export const sendMessage = (messageData: {
     receiver_name: receiver?.name,
   };
   
+  console.log('📝 Created new message:', newMessage);
+  console.log('👤 Sender info:', sender);
+  console.log('🎯 Receiver info:', receiver);
+  
   // TODO: Replace with Supabase real-time
   // When REALTIME_ENABLED: Broadcast message to receiver
   // supabase.channel('messages').send({ type: 'message_sent', payload: newMessage })
   
   mockMessages.push(newMessage);
+  console.log('✅ Message added to mockMessages array');
+  console.log('📊 Total messages now:', mockMessages.length);
+  console.log('📋 Latest messages:', mockMessages.slice(-3).map(m => ({
+    id: m.id,
+    from: m.sender_id,
+    to: m.receiver_id,
+    content: m.content.substring(0, 30) + '...'
+  })));
+  
   return newMessage;
 };
 

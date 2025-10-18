@@ -234,6 +234,11 @@ export const ClientConversationScreen: React.FC<ClientConversationScreenProps> =
           <SectionHeader 
             title={participantName}
             subtitle="Trainer"
+            showBackButton={true}
+            onBackPress={() => {
+              console.log('Conversation screen back pressed');
+              navigation.goBack();
+            }}
           />
         </View>
         

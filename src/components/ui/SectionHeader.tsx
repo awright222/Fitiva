@@ -6,6 +6,8 @@ interface SectionHeaderProps {
   subtitle?: string;
   actionText?: string;
   onActionPress?: () => void;
+  showBackButton?: boolean;
+  onBackPress?: () => void;
 }
 
 export const SectionHeader: React.FC<SectionHeaderProps> = ({
@@ -13,13 +15,35 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   subtitle,
   actionText,
   onActionPress,
+  showBackButton = false,
+  onBackPress,
 }) => {
   return (
     <View style={styles.container}>
-      <View style={styles.textContainer}>
+      {showBackButton && onBackPress && (
+        <TouchableOpacity 
+          onPress={() => {
+            console.log('🔙 SectionHeader back button pressed');
+            console.log('🔙 onBackPress function exists:', typeof onBackPress);
+            try {
+              onBackPress();
+              console.log('✅ onBackPress called successfully');
+            } catch (error) {
+              console.error('❌ Error calling onBackPress:', error);
+            }
+          }} 
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+      )}
+      
+      <View style={[styles.textContainer, showBackButton && styles.textContainerWithBack]}>
         <Text style={styles.title}>{title}</Text>
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
+      
       {actionText && onActionPress && (
         <TouchableOpacity onPress={onActionPress} style={styles.actionButton}>
           <Text style={styles.actionText}>{actionText}</Text>
@@ -58,5 +82,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#3B82F6',
+  },
+  backButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginRight: 12,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  textContainerWithBack: {
+    marginLeft: 0,
   },
 });

@@ -32,6 +32,7 @@ import {
   Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { ConversationList } from '../components';
 import { SectionHeader } from '../../../components/ui';
@@ -54,6 +55,52 @@ export const ClientMessagesScreen: React.FC<ClientMessagesScreenProps> = ({ navi
     loadConversations();
   }, [user?.id]);
 
+  // Refresh conversations when screen comes into focus (e.g., after sending a new message)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 ClientMessagesScreen useFocusEffect triggered');
+      console.log('🔍 User object:', user);
+      console.log('🔍 User ID:', user?.id);
+      console.log('🔍 User profile:', user ? { id: user.id, email: user.email, metadata: user.user_metadata } : 'null');
+      
+      if (user?.id) {
+        console.log('✅ User authenticated, refreshing conversations for:', user.id);
+        // Force refresh conversations
+        const refreshConversations = async () => {
+          try {
+            setLoading(true);
+            const userId = user.id;
+            console.log('📞 Calling getConversations for userId:', userId);
+            
+            // Add small delay to ensure any pending message operations complete
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            const mockConversations = getConversations(userId);
+            console.log('📋 Raw conversations returned:', mockConversations);
+            console.log('📊 Number of conversations:', mockConversations.length);
+            
+            // Force a state update by creating new array reference
+            setConversations([...mockConversations]);
+            console.log('✅ Conversations state updated with new array reference');
+            
+            // Force another small delay to ensure UI updates
+            setTimeout(() => {
+              console.log('🔄 Secondary state check - conversations length:', mockConversations.length);
+            }, 200);
+            
+          } catch (error) {
+            console.error('❌ Error refreshing conversations:', error);
+          } finally {
+            setLoading(false);
+          }
+        };
+        refreshConversations();
+      } else {
+        console.log('❌ No user ID available, cannot load conversations');
+      }
+    }, [user?.id])
+  );
+
   // TODO: Replace with: supabase.from('conversations_view').select().eq('client_id', user.id)
   const loadConversations = async () => {
     try {
@@ -61,6 +108,8 @@ export const ClientMessagesScreen: React.FC<ClientMessagesScreenProps> = ({ navi
       
       // Mock user ID for demonstration (replace with real auth)
       const userId = user?.id || '1'; // Default to client user for demo
+      
+      console.log('📞 loadConversations called for userId:', userId);
       
       // TODO: When REALTIME_ENABLED in feature flags:
       // const { data, error } = await supabase
@@ -70,7 +119,9 @@ export const ClientMessagesScreen: React.FC<ClientMessagesScreenProps> = ({ navi
       //   .order('updated_at', { ascending: false });
       
       const mockConversations = getConversations(userId);
+      console.log('📋 loadConversations got:', mockConversations.length, 'conversations');
       setConversations(mockConversations);
+      console.log('✅ Conversations state set in loadConversations');
       
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -127,18 +178,25 @@ export const ClientMessagesScreen: React.FC<ClientMessagesScreenProps> = ({ navi
     );
   }
 
+  const handleStartNewConversation = () => {
+    // Navigate to trainer selection screen
+    navigation.navigate('SelectTrainer');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <SectionHeader 
           title="Messages" 
           subtitle={conversations.length > 0 ? `${conversations.length} conversation${conversations.length !== 1 ? 's' : ''}` : undefined}
+          actionText="New Message"
+          onActionPress={handleStartNewConversation}
         />
         
         <ConversationList
           conversations={conversations}
           onConversationPress={handleConversationPress}
-          emptyMessage="No messages yet. Your trainer will reach out to you here!"
+          emptyMessage="No messages yet. Tap 'New Message' to start a conversation with your trainer!"
         />
       </View>
     </SafeAreaView>

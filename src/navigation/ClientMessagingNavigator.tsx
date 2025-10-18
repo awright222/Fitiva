@@ -12,6 +12,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import {
   ClientMessagesScreen,
   ClientConversationScreen,
+  SelectTrainerScreen,
+  ComposeMessageScreen,
 } from '../features/messaging/screens';
 
 // Navigation parameter types
@@ -20,7 +22,13 @@ export type ClientMessagingParamList = {
   ClientConversation: {
     participantId: string;
     participantName: string;
-    participantAvatar: string;
+    participantAvatar?: string;
+  };
+  SelectTrainer: undefined;
+  ComposeMessage: {
+    trainerId: string;
+    trainerName: string;
+    trainerSpecialty?: string;
   };
 };
 
@@ -40,6 +48,14 @@ export const ClientMessagingNavigator: React.FC = () => {
       <Stack.Screen 
         name="ClientConversation" 
         component={ClientConversationScreen}
+      />
+      <Stack.Screen 
+        name="SelectTrainer" 
+        component={SelectTrainerScreen}
+      />
+      <Stack.Screen 
+        name="ComposeMessage" 
+        component={ComposeMessageScreen}
       />
     </Stack.Navigator>
   );
