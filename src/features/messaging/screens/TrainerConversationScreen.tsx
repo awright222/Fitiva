@@ -31,7 +31,7 @@
  *    - Display client goals and progress
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   View,
   FlatList,
@@ -43,9 +43,11 @@ import {
   Platform,
   Text,
   TextStyle,
+  TouchableOpacity,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { MessageBubble, MessageComposer } from '../components';
 import { SectionHeader } from '../../../components/ui';
@@ -91,6 +93,21 @@ export const TrainerConversationScreen: React.FC<TrainerConversationScreenProps>
   const [sending, setSending] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
+
+  // Configure header with back button
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          style={{ marginLeft: 10, padding: 8 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#ffffff" />
+        </TouchableOpacity>
+      ),
+      gestureEnabled: true, // Enable swipe to go back
+    });
+  }, [navigation]);
 
   // TODO: Replace with Supabase real-time subscription
   useEffect(() => {

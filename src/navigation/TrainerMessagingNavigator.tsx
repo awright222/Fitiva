@@ -32,12 +32,13 @@ export const TrainerMessagingNavigator: React.FC = () => {
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#2196f3',
+          backgroundColor: '#5856D6',
         },
         headerTintColor: '#ffffff',
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        gestureEnabled: true,
       }}
     >
       <Stack.Screen 
@@ -48,9 +49,10 @@ export const TrainerMessagingNavigator: React.FC = () => {
       <Stack.Screen 
         name="TrainerConversation" 
         component={TrainerConversationScreen}
-        options={({ route }) => ({ 
+        options={({ route, navigation }) => ({ 
           title: route.params?.participantName || 'Conversation',
-          headerBackTitle: 'Messages'
+          headerBackTitle: 'Messages',
+          gestureEnabled: true
         })}
       />
     </Stack.Navigator>
