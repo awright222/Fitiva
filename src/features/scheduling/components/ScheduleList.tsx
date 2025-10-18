@@ -12,6 +12,9 @@ interface ScheduleListProps {
   onSessionPress?: (session: Session) => void;
   onStatusChange?: (sessionId: string, newStatus: SessionStatus) => void;
   emptyMessage?: string;
+  userRole?: 'client' | 'trainer'; // NEW: For session mode actions
+  onEditSession?: (session: Session) => void; // NEW: Edit session callback
+  onCancelSession?: (session: Session) => void; // NEW: Cancel session callback
 }
 
 export const ScheduleList: React.FC<ScheduleListProps> = ({
@@ -22,6 +25,9 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
   onSessionPress,
   onStatusChange,
   emptyMessage = 'No sessions scheduled',
+  userRole = 'client', // NEW: Default to client role
+  onEditSession,
+  onCancelSession,
 }) => {
   const sortedSessions = [...sessions].sort((a, b) => 
     new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
@@ -34,6 +40,9 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
       showParticipant={showParticipant}
       showActions={showActions}
       onStatusChange={onStatusChange}
+      userRole={userRole} // NEW: Pass userRole to SessionCard
+      onEdit={onEditSession} // NEW: Pass edit callback
+      onCancel={onCancelSession} // NEW: Pass cancel callback
     />
   );
 

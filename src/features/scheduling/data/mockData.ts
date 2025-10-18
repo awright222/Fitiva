@@ -83,7 +83,7 @@ const getDateOnlyString = (daysFromNow: number): string => {
   return date.toISOString().split('T')[0];
 };
 
-// Mock sessions data
+// Mock sessions data with hybrid scheduling support
 export const mockSessions: Session[] = [
   {
     id: '1',
@@ -91,6 +91,7 @@ export const mockSessions: Session[] = [
     client_id: '1', // Test Client
     scheduled_at: getDateString(1), // Tomorrow
     status: 'scheduled',
+    session_mode: 'in_person',
     notes: 'Focus on upper body strength training',
     created_at: getDateString(-2),
     updated_at: getDateString(-1),
@@ -105,7 +106,9 @@ export const mockSessions: Session[] = [
     client_id: '1',
     scheduled_at: getDateString(3), // 3 days from now
     status: 'scheduled',
-    notes: 'Cardio and core workout',
+    session_mode: 'virtual',
+    video_link: 'https://zoom.us/j/1234567890',
+    notes: 'Cardio and core workout - virtual session',
     created_at: getDateString(-1),
     updated_at: getDateString(-1),
     trainer_name: 'Test Trainer',
@@ -119,6 +122,7 @@ export const mockSessions: Session[] = [
     client_id: '4', // Another client
     scheduled_at: getDateString(0), // Today
     status: 'completed',
+    session_mode: 'in_person',
     notes: 'Completed full body workout',
     created_at: getDateString(-3),
     updated_at: getDateString(0),
@@ -133,6 +137,8 @@ export const mockSessions: Session[] = [
     client_id: '5',
     scheduled_at: getDateString(-1), // Yesterday
     status: 'completed',
+    session_mode: 'virtual',
+    video_link: 'https://meet.google.com/abc-defg-hij',
     notes: 'Strength training session completed',
     created_at: getDateString(-4),
     updated_at: getDateString(-1),
@@ -147,6 +153,7 @@ export const mockSessions: Session[] = [
     client_id: '6',
     scheduled_at: getDateString(2),
     status: 'pending',
+    session_mode: 'in_person',
     notes: 'New client consultation and assessment',
     created_at: getDateString(0),
     updated_at: getDateString(0),
@@ -154,6 +161,38 @@ export const mockSessions: Session[] = [
     client_name: 'Emma Davis',
     duration_minutes: 90,
     session_type: 'Initial Consultation',
+  },
+  {
+    id: '6',
+    trainer_id: '2',
+    client_id: '1',
+    scheduled_at: getDateString(5), // 5 days from now
+    status: 'scheduled',
+    session_mode: 'self_guided',
+    program_id: 1, // Link to mock program
+    notes: 'Self-guided strength program - Week 2',
+    created_at: getDateString(0),
+    updated_at: getDateString(0),
+    trainer_name: 'Test Trainer',
+    client_name: 'Test Client',
+    duration_minutes: 0, // Self-guided has flexible duration
+    session_type: 'Self-Guided Program',
+  },
+  {
+    id: '7',
+    trainer_id: '2',
+    client_id: '1',
+    scheduled_at: getDateString(7), // 7 days from now
+    status: 'scheduled',
+    session_mode: 'self_guided',
+    program_id: 1,
+    notes: 'Self-guided cardio program - Week 3',
+    created_at: getDateString(0),
+    updated_at: getDateString(0),
+    trainer_name: 'Test Trainer',
+    client_name: 'Test Client',
+    duration_minutes: 0,
+    session_type: 'Self-Guided Program',
   },
 ];
 
@@ -237,7 +276,10 @@ export const getSessionsByTrainer = (trainerId: string): Session[] => {
 
 // TODO: Replace with: supabase.from('sessions').select().eq('client_id', clientId)  
 export const getSessionsByClient = (clientId: string): Session[] => {
-  return mockSessions.filter(session => session.client_id === clientId);
+  const clientSessions = mockSessions.filter(session => session.client_id === clientId);
+  console.log(`Getting sessions for client ${clientId}:`, clientSessions.length, 'sessions found');
+  console.log('Client sessions:', clientSessions);
+  return clientSessions;
 };
 
 // TODO: Replace with: supabase.from('sessions').select().eq('status', status)
@@ -271,6 +313,9 @@ export const createSession = (sessionData: any): Session => {
     client_id: sessionData.client_id,
     scheduled_at: sessionData.scheduled_at,
     status: 'pending',
+    session_mode: sessionData.session_mode || 'in_person', // NEW: Default to in-person
+    video_link: sessionData.video_link, // NEW: For virtual sessions
+    program_id: sessionData.program_id, // NEW: For self-guided sessions
     notes: sessionData.notes || '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -280,19 +325,28 @@ export const createSession = (sessionData: any): Session => {
     session_type: sessionData.session_type || 'Personal Training',
   };
   
+  // Debug logging
+  console.log('Creating session:', newSession);
+  console.log('Total sessions before:', mockSessions.length);
+  
   // TODO: Replace with Supabase real-time
   // When REALTIME_ENABLED: Broadcast session creation to trainer
   // supabase.channel('sessions').send({ type: 'session_created', payload: newSession })
   mockSessions.push(newSession);
+  
+  console.log('Total sessions after:', mockSessions.length);
   return newSession;
 };
 
 // Mock function to update session status  
 // TODO: Replace with Supabase update
 // const { data, error } = await supabase.from('sessions').update({ status }).eq('id', sessionId)
-export const updateSessionStatus = (sessionId: string, status: string): Session | null => {
+export const updateSessionStatus = (sessionId: string | number, status: string): Session | null => {
+  console.log('updateSessionStatus called with sessionId:', sessionId, 'status:', status);
   const sessionIndex = mockSessions.findIndex(session => session.id === sessionId);
+  console.log('Found session at index:', sessionIndex);
   if (sessionIndex !== -1) {
+    console.log('Updating session status from:', mockSessions[sessionIndex].status, 'to:', status);
     mockSessions[sessionIndex].status = status as any;
     mockSessions[sessionIndex].updated_at = new Date().toISOString();
     
@@ -300,7 +354,9 @@ export const updateSessionStatus = (sessionId: string, status: string): Session 
     // When REALTIME_ENABLED: Broadcast status change to client/trainer
     // supabase.channel('sessions').send({ type: 'status_changed', payload: mockSessions[sessionIndex] })
     
+    console.log('Session updated:', mockSessions[sessionIndex]);
     return mockSessions[sessionIndex];
   }
+  console.log('Session not found!');
   return null;
 };

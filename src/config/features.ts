@@ -2,6 +2,7 @@ export const FEATURES = {
   // Core scheduling features (MVP)
   SCHEDULING_ENABLED: true,
   SESSION_BOOKING: true,
+  SELF_GUIDED_ENABLED: true, // NEW: Hybrid scheduling with self-guided sessions
   
   // Content Library & Programs (MVP Phase 2)
   CONTENT_LIBRARY_ENABLED: true, // Exercise library and program builder

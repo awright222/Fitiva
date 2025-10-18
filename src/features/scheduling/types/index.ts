@@ -4,6 +4,9 @@
 
 export type SessionStatus = 'scheduled' | 'completed' | 'canceled' | 'pending';
 
+// Session modes for hybrid scheduling
+export type SessionMode = 'in_person' | 'virtual' | 'self_guided';
+
 export interface Session {
   id: string;
   trainer_id: string;
@@ -11,6 +14,9 @@ export interface Session {
   org_id?: string;
   scheduled_at: string; // ISO timestamp
   status: SessionStatus;
+  session_mode: SessionMode;  // NEW: Type of session delivery
+  video_link?: string;  // NEW: For virtual sessions (Zoom, Teams, etc.)
+  program_id?: number;  // NEW: For self-guided sessions, link to assigned program
   notes?: string;
   created_at: string;
   updated_at: string;

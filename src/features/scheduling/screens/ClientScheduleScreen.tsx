@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { ScheduleList } from '../components';
 import { SectionHeader, Button } from '../../../components/ui';
 import { Session, SessionStatus } from '../types';
@@ -18,13 +19,26 @@ export const ClientScheduleScreen: React.FC<ClientScheduleScreenProps> = ({ navi
     getSessionsByClient(user?.id || '1') // Default to client ID 1 for testing
   );
 
+  // Refresh sessions when screen comes into focus (e.g., after creating a new session)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Refresh sessions when screen comes into focus
+      if (user?.id) {
+        console.log('ClientScheduleScreen focused - refreshing sessions for user:', user.id);
+        const refreshedSessions = getSessionsByClient(user.id);
+        setSessions(refreshedSessions);
+        console.log('Sessions updated:', refreshedSessions.length, 'sessions');
+      }
+    }, [user?.id])
+  );
+
   const handleSessionPress = (session: Session) => {
     // TODO: Navigate to session details screen
     // TODO: When REALTIME_ENABLED, this could show live session updates
     console.log('Session pressed:', session);
   };
 
-  const handleStatusChange = (sessionId: string, newStatus: SessionStatus) => {
+  const handleStatusChange = (sessionId: string | number, newStatus: SessionStatus) => {
     const updatedSession = updateSessionStatus(sessionId, newStatus);
     if (updatedSession) {
       setSessions(prevSessions => 
@@ -43,6 +57,36 @@ export const ClientScheduleScreen: React.FC<ClientScheduleScreenProps> = ({ navi
   const handleBookSession = () => {
     // TODO: Navigate to booking screen
     navigation.navigate('BookSession');
+  };
+
+  const handleEditSession = (session: Session) => {
+    // Navigate to edit session screen (reuse BookSession with pre-filled data)
+    navigation.navigate('BookSession', { editSession: session });
+  };
+
+  const handleCancelSession = (session: Session) => {
+    console.log('handleCancelSession called for session:', session.id);
+    
+    // Web-compatible confirmation
+    const confirmCancel = window.confirm(`Are you sure you want to cancel your ${session.session_type} session?`);
+    
+    if (confirmCancel) {
+      console.log('User confirmed cancellation, updating session status...');
+      const updatedSession = updateSessionStatus(session.id, 'canceled');
+      console.log('Updated session:', updatedSession);
+      if (updatedSession) {
+        setSessions(prevSessions =>
+          prevSessions.map(s => s.id === session.id ? updatedSession : s)
+        );
+        console.log('Session successfully canceled and UI updated');
+        // Web-compatible success message
+        alert('Session request canceled successfully!');
+      } else {
+        console.error('Failed to update session status');
+      }
+    } else {
+      console.log('User canceled the cancellation');
+    }
   };
 
   const upcomingSessions = sessions.filter(session => 
@@ -75,6 +119,9 @@ export const ClientScheduleScreen: React.FC<ClientScheduleScreenProps> = ({ navi
             onSessionPress={handleSessionPress}
             onStatusChange={handleStatusChange}
             emptyMessage="No upcoming sessions scheduled"
+            userRole="client"
+            onEditSession={handleEditSession}
+            onCancelSession={handleCancelSession}
           />
         </View>
 
@@ -89,6 +136,9 @@ export const ClientScheduleScreen: React.FC<ClientScheduleScreenProps> = ({ navi
             showParticipant="trainer"
             onSessionPress={handleSessionPress}
             emptyMessage="No session history yet"
+            userRole="client"
+            onEditSession={handleEditSession}
+            onCancelSession={handleCancelSession}
           />
         </View>
       </View>

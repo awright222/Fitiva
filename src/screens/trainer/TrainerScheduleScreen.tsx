@@ -15,6 +15,7 @@ import { COLORS } from '../../constants';
 import { SectionHeader } from '../../components/ui';
 import { mockTrainerData } from '../../data/mockData';
 import { TrainerScheduleStackParamList } from '../../navigation/TrainerScheduleNavigator';
+import { SessionMode } from '../../types'; // NEW: Import hybrid scheduling types
 
 type TrainerScheduleScreenNavigationProp = StackNavigationProp<
   TrainerScheduleStackParamList,
@@ -113,6 +114,22 @@ const TrainerScheduleScreen: React.FC<TrainerScheduleScreenProps> = ({ navigatio
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  
+  // NEW: Create Session Modal State
+  const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
+  const [newSessionData, setNewSessionData] = useState({
+    client_id: '',
+    client_name: '',
+    date: '',
+    start_time: '',
+    session_type: 'personal' as 'personal' | 'group' | 'assessment',
+    session_mode: 'in_person' as SessionMode, // NEW: Session mode
+    video_link: '', // NEW: For virtual sessions
+    program_id: '', // NEW: For self-guided sessions
+    notes: '',
+    duration_minutes: 60,
+  });
+  
   const [editingAvailability, setEditingAvailability] = useState(false);
   const [showTimePickerModal, setShowTimePickerModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -865,6 +882,76 @@ const TrainerScheduleScreen: React.FC<TrainerScheduleScreenProps> = ({ navigatio
     );
   };
 
+  // NEW: Handle session creation by trainer
+  const handleCreateSession = () => {
+    // Validate form data
+    if (!newSessionData.client_name.trim()) {
+      Alert.alert('Error', 'Please enter client name');
+      return;
+    }
+    if (!newSessionData.date || !newSessionData.start_time) {
+      Alert.alert('Error', 'Please select date and time');
+      return;
+    }
+    if (newSessionData.session_mode === 'virtual' && !newSessionData.video_link.trim()) {
+      Alert.alert('Error', 'Please provide video link for virtual sessions');
+      return;
+    }
+    if (newSessionData.session_mode === 'self_guided' && !newSessionData.program_id.trim()) {
+      Alert.alert('Error', 'Please select program for self-guided sessions');
+      return;
+    }
+
+    // Calculate end time
+    const startTime = new Date(`${newSessionData.date}T${newSessionData.start_time}:00`);
+    const endTime = new Date(startTime.getTime() + newSessionData.duration_minutes * 60000);
+    const endTimeString = endTime.toTimeString().substring(0, 5);
+
+    // Create new session
+    const newSession: Session = {
+      id: `session_${Date.now()}`,
+      client_id: newSessionData.client_id || `client_${Date.now()}`, // Generate ID if not provided
+      client_name: newSessionData.client_name,
+      client_avatar: null,
+      session_type: newSessionData.session_type,
+      session_category: newSessionData.session_type === 'personal' ? 'Personal Training' : 
+                       newSessionData.session_type === 'group' ? 'Group Class' : 'Assessment',
+      date: newSessionData.date,
+      start_time: newSessionData.start_time,
+      end_time: endTimeString,
+      status: 'confirmed',
+      location: newSessionData.session_mode === 'in_person' ? 'Gym' : 
+                newSessionData.session_mode === 'virtual' ? 'Virtual' : 'Self-Guided',
+      notes: newSessionData.notes,
+      program_id: newSessionData.session_mode === 'self_guided' ? newSessionData.program_id : '',
+      program_name: newSessionData.session_mode === 'self_guided' ? 'Assigned Program' : '',
+    };
+
+    // Add to upcoming sessions
+    setUpcomingSessions(prev => [...prev, newSession]);
+    
+    // Reset form and close modal
+    setNewSessionData({
+      client_id: '',
+      client_name: '',
+      date: '',
+      start_time: '',
+      session_type: 'personal',
+      session_mode: 'in_person',
+      video_link: '',
+      program_id: '',
+      notes: '',
+      duration_minutes: 60,
+    });
+    setShowCreateSessionModal(false);
+
+    Alert.alert('Success', 'Session created successfully!');
+    
+    // TODO: Save to Supabase in real implementation
+    // TODO: Send notification to client
+    // TODO: Block availability slot
+  };
+
   const toggleDayAvailability = (dayIndex: number) => {
     // Update Supabase format (primary data source)
     const updatedSupabaseAvailability = trainerAvailability.map(slot =>
@@ -1355,6 +1442,15 @@ const TrainerScheduleScreen: React.FC<TrainerScheduleScreenProps> = ({ navigatio
     
     return (
       <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+        {/* NEW: Create Session Button */}
+        <TouchableOpacity 
+          style={styles.createSessionButton}
+          onPress={() => setShowCreateSessionModal(true)}
+        >
+          <Ionicons name="add-circle-outline" size={24} color={COLORS.white} />
+          <Text style={styles.createSessionButtonText}>Create New Session</Text>
+        </TouchableOpacity>
+
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{mockTrainerData.scheduleStats.thisWeekSessions}</Text>
@@ -1824,6 +1920,197 @@ const TrainerScheduleScreen: React.FC<TrainerScheduleScreenProps> = ({ navigatio
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* NEW: Create Session Modal */}
+      <Modal
+        visible={showCreateSessionModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Create New Session</Text>
+            <TouchableOpacity onPress={() => setShowCreateSessionModal(false)}>
+              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            {/* Client Name */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Client Name *</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Enter client name"
+                value={newSessionData.client_name}
+                onChangeText={(text) => setNewSessionData(prev => ({ ...prev, client_name: text }))}
+                placeholderTextColor={COLORS.text.secondary}
+              />
+            </View>
+
+            {/* Session Type */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Session Type *</Text>
+              <View style={styles.sessionTypeButtons}>
+                {['personal', 'group', 'assessment'].map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.typeButton,
+                      newSessionData.session_type === type && styles.typeButtonSelected
+                    ]}
+                    onPress={() => setNewSessionData(prev => ({ 
+                      ...prev, 
+                      session_type: type as 'personal' | 'group' | 'assessment' 
+                    }))}
+                  >
+                    <Text style={[
+                      styles.typeButtonText,
+                      newSessionData.session_type === type && styles.typeButtonTextSelected
+                    ]}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Session Mode */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Session Mode *</Text>
+              <View style={styles.sessionModeCards}>
+                {[
+                  { id: 'in_person' as SessionMode, label: 'In Person', icon: '🏋️', desc: 'Meet at gym' },
+                  { id: 'virtual' as SessionMode, label: 'Virtual', icon: '💻', desc: 'Video call' },
+                  { id: 'self_guided' as SessionMode, label: 'Self-Guided', icon: '📱', desc: 'Independent workout' },
+                ].map((mode) => (
+                  <TouchableOpacity
+                    key={mode.id}
+                    style={[
+                      styles.modeCard,
+                      newSessionData.session_mode === mode.id && styles.modeCardSelected
+                    ]}
+                    onPress={() => setNewSessionData(prev => ({ ...prev, session_mode: mode.id }))}
+                  >
+                    <Text style={styles.modeIcon}>{mode.icon}</Text>
+                    <Text style={[
+                      styles.modeLabel,
+                      newSessionData.session_mode === mode.id && styles.modeLabelSelected
+                    ]}>
+                      {mode.label}
+                    </Text>
+                    <Text style={styles.modeDescription}>{mode.desc}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Video Link for Virtual Sessions */}
+            {newSessionData.session_mode === 'virtual' && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Video Link *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="https://zoom.us/j/... or Teams link"
+                  value={newSessionData.video_link}
+                  onChangeText={(text) => setNewSessionData(prev => ({ ...prev, video_link: text }))}
+                  placeholderTextColor={COLORS.text.secondary}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            )}
+
+            {/* Program Selection for Self-Guided */}
+            {newSessionData.session_mode === 'self_guided' && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Program *</Text>
+                <TouchableOpacity style={styles.programPicker}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Select or enter program ID"
+                    value={newSessionData.program_id}
+                    onChangeText={(text) => setNewSessionData(prev => ({ ...prev, program_id: text }))}
+                    placeholderTextColor={COLORS.text.secondary}
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Date and Time */}
+            <View style={styles.dateTimeRow}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                <Text style={styles.inputLabel}>Date *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="YYYY-MM-DD"
+                  value={newSessionData.date}
+                  onChangeText={(text) => setNewSessionData(prev => ({ ...prev, date: text }))}
+                  placeholderTextColor={COLORS.text.secondary}
+                />
+              </View>
+              
+              <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                <Text style={styles.inputLabel}>Start Time *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="HH:MM"
+                  value={newSessionData.start_time}
+                  onChangeText={(text) => setNewSessionData(prev => ({ ...prev, start_time: text }))}
+                  placeholderTextColor={COLORS.text.secondary}
+                />
+              </View>
+            </View>
+
+            {/* Duration */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Duration (minutes)</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="60"
+                value={newSessionData.duration_minutes.toString()}
+                onChangeText={(text) => setNewSessionData(prev => ({ 
+                  ...prev, 
+                  duration_minutes: parseInt(text) || 60 
+                }))}
+                placeholderTextColor={COLORS.text.secondary}
+                keyboardType="numeric"
+              />
+            </View>
+
+            {/* Notes */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Notes</Text>
+              <TextInput
+                style={[styles.textInput, styles.notesInput]}
+                placeholder="Session notes or special instructions..."
+                value={newSessionData.notes}
+                onChangeText={(text) => setNewSessionData(prev => ({ ...prev, notes: text }))}
+                placeholderTextColor={COLORS.text.secondary}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.createModalActions}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.createModalCancelButton]}
+                onPress={() => setShowCreateSessionModal(false)}
+              >
+                <Text style={styles.createModalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.createModalCreateButton]}
+                onPress={handleCreateSession}
+              >
+                <Text style={styles.createModalCreateButtonText}>Create Session</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -2589,6 +2876,135 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
+  },
+  // NEW: Create Session Button Styles
+  createSessionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    gap: 8,
+  },
+  createSessionButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // NEW: Create Session Modal Styles
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: COLORS.text.primary,
+    backgroundColor: COLORS.white,
+  },
+  sessionTypeButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  typeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+    backgroundColor: COLORS.background,
+  },
+  typeButtonSelected: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  typeButtonText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  typeButtonTextSelected: {
+    color: COLORS.white,
+    fontWeight: '500',
+  },
+  sessionModeCards: {
+    gap: 12,
+  },
+  modeCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+  },
+  modeCardSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: '#F0F9FF',
+  },
+  modeIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  modeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  modeLabelSelected: {
+    color: COLORS.primary,
+  },
+  modeDescription: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+  },
+  programPicker: {
+    // Container style for program picker
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  notesInput: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  createModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  createModalCancelButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+  },
+  createModalCreateButton: {
+    backgroundColor: COLORS.primary,
+  },
+  createModalCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  createModalCreateButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.white,
   },
 });
 

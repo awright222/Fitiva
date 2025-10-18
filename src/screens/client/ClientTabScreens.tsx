@@ -1,6 +1,7 @@
 import React from 'react';
 import { PlaceholderScreen } from '../../components/PlaceholderScreen';
 import { ClientProgramScreen } from './ClientProgramScreen';
+import { ClientProfileScreen } from './ClientProfileScreen';
 
 export const ProgramsScreen: React.FC = () => {
   // Use the new client program screen for assigned workout programs
@@ -56,17 +57,5 @@ export const MessagesScreen: React.FC = () => {
 };
 
 export const ProfileScreen: React.FC = () => {
-  return (
-    <PlaceholderScreen
-      title="Profile"
-      subtitle="Manage your account settings"
-      features={[
-        'Personal information',
-        'Health metrics',
-        'Preferences',
-        'Notification settings',
-        'Privacy controls',
-      ]}
-    />
-  );
+  return <ClientProfileScreen />;
 };

@@ -29,16 +29,22 @@ export interface Organization {
 }
 
 // Session statuses
-export type SessionStatus = 'scheduled' | 'completed' | 'canceled';
+export type SessionStatus = 'scheduled' | 'completed' | 'canceled' | 'pending';
+
+// Session modes for hybrid scheduling
+export type SessionMode = 'in_person' | 'virtual' | 'self_guided';
 
 // Session interface
 export interface Session {
-  id: number;
+  id: string | number; // Support both string (mock) and number (database) IDs
   trainer_id: string;  // UUID reference to users table
   client_id: string;   // UUID reference to users table
   org_id?: number;
   scheduled_at: string;  // ISO date string
   status: SessionStatus;
+  session_mode: SessionMode;  // NEW: Type of session delivery
+  video_link?: string;  // NEW: For virtual sessions (Zoom, Teams, etc.)
+  program_id?: number;  // NEW: For self-guided sessions, link to assigned program
   notes?: string;
   created_at: string;
   updated_at: string;
